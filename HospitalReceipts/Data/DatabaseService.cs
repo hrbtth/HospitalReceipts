@@ -1,5 +1,6 @@
-﻿using HospitalReceipts.Models;
+﻿
 using Microsoft.Data.Sqlite;
+using HospitalReceipts.Models;
 
 namespace HospitalReceipts.Data
 {
@@ -30,7 +31,7 @@ namespace HospitalReceipts.Data
                 books.Add(new ReceiptBookMain
                 {
                     BookId = reader.GetInt32(0),
-                    DoctorName = reader.GetString(1),
+                    BookName = reader.GetString(1),
                     Header1 = reader.GetString(2),
                     Header2 = reader.GetString(3),
                     Header3 = reader.GetString(4),
@@ -49,7 +50,7 @@ namespace HospitalReceipts.Data
         (DoctorName, Header1, Header2, Header3, DefaultAmount, DefaultTowards, NextReceiptNo)
         VALUES ($doctor, $h1, $h2, $h3, $amt, $towards, $next)";
 
-            cmd.Parameters.AddWithValue("$doctor", book.DoctorName);
+            cmd.Parameters.AddWithValue("$doctor", book.BookName);
             cmd.Parameters.AddWithValue("$h1", book.Header1);
             cmd.Parameters.AddWithValue("$h2", book.Header2);
             cmd.Parameters.AddWithValue("$h3", book.Header3);
@@ -69,7 +70,7 @@ namespace HospitalReceipts.Data
         DefaultAmount=$amt, DefaultTowards=$towards, NextReceiptNo=$next 
         WHERE BookId=$id";
 
-            cmd.Parameters.AddWithValue("$doctor", book.DoctorName);
+            cmd.Parameters.AddWithValue("$doctor", book.BookName);
             cmd.Parameters.AddWithValue("$h1", book.Header1);
             cmd.Parameters.AddWithValue("$h2", book.Header2);
             cmd.Parameters.AddWithValue("$h3", book.Header3);

@@ -1,136 +1,165 @@
 ﻿@page "/books"
-@inject HospitalReceipts.Data.DatabaseService Db
+@using HospitalReceipts.Data
+@using Microsoft.EntityFrameworkCore
 @using HospitalReceipts.Models
+@inject AppDbContext Db
 
-<h3>Receipt Books</h3>
+<h3>Books</h3>
 
-<button class="btn btn-primary mb-3" @onclick="NewBook">➕ Add New Book</button>
+<!-- Button to add new book -->
+<button class="btn btn-primary mb-3" @onclick="AddBook">Add New Book</button>
 
-@if (books == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>BookId</th>
-                <th>Doctor</th>
-                <th>Next Receipt No</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>BookId</th>
+            <th>Book Name</th>
+            <th>Header1</th>
+            <th>Header2</th>
+            <th>Header3</th>
+            <th>Default Amount</th>
+            <th>Default Towards</th>
+            <th>Next Receipt No</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (books != null)
+        {
             @foreach (var book in books)
             {
                 <tr>
-                    <td>@book.BookId</td>
-                    <td>@book.DoctorName</td>
-                    <td>@book.NextReceiptNo</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning me-1" @onclick="() => EditBook(book)">✏️ Edit</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteBook(book.BookId)">🗑️ Delete</button>
-                    </td>
+                    @if (editBook == book)
+                    {
+                        <!-- Editing row -->
+                        <td>@book.BookId</td>
+                        <td><input class="form-control" @bind="book.BookName" /></td>
+                        <td><input class="form-control" @bind="book.Header1" /></td>
+                        <td><input class="form-control" @bind="book.Header2" /></td>
+                        <td><input class="form-control" @bind="book.Header3" /></td>
+                        <td><input type="number" class="form-control" @bind="book.DefaultAmount" /></td>
+                        <td><input class="form-control" @bind="book.DefaultTowards" /></td>
+                        <td><input type="number" class="form-control" @bind="book.NextReceiptNo" /></td>
+                        <td>
+                            <button class="btn btn-success btn-sm" @onclick="() => SaveBook(book)">Save</button>
+                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                        </td>
+                    }
+                    else
+                    {
+                        <!-- Normal row -->
+                        <td>@book.BookId</td>
+                        <td>@book.BookName</td>
+                        <td>@book.Header1</td>
+                        <td>@book.Header2</td>
+                        <td>@book.Header3</td>
+                        <td>@book.DefaultAmount</td>
+                        <td>@book.DefaultTowards</td>
+                        <td>@book.NextReceiptNo</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" @onclick="() => EditBook(book)">Edit</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => ConfirmDelete(book)">Delete</button>
+                        </td>
+                    }
                 </tr>
             }
-        </tbody>
-    </table>
-}
+        }
+    </tbody>
+</table>
 
-@if (editingBook != null)
+<!-- Confirmation Dialog -->
+@if (deleteBook != null)
 {
-    <div class="card p-3 mt-3">
-        <h5>@(editingBook.BookId == 0 ? "Add New Book" : "Edit Book")</h5>
-        <div class="mb-2">
-            <label>Doctor Name</label>
-            <input class="form-control" @bind="editingBook.DoctorName" />
+    <div class="modal fade show d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <b>@deleteBook.BookName</b> (BookId: @deleteBook.BookId)?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" @onclick="DeleteBook">Yes, Delete</button>
+                    <button class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+                </div>
+            </div>
         </div>
-        <div class="mb-2">
-            <label>Header1</label>
-            <input class="form-control" @bind="editingBook.Header1" />
-        </div>
-        <div class="mb-2">
-            <label>Header2</label>
-            <input class="form-control" @bind="editingBook.Header2" />
-        </div>
-        <div class="mb-2">
-            <label>Header3</label>
-            <input class="form-control" @bind="editingBook.Header3" />
-        </div>
-        <div class="mb-2">
-            <label>Default Amount</label>
-            <input type="number" class="form-control" @bind="editingBook.DefaultAmount" />
-        </div>
-        <div class="mb-2">
-            <label>Default Towards</label>
-            <input class="form-control" @bind="editingBook.DefaultTowards" />
-        </div>
-        <div class="mb-2">
-            <label>Next Receipt No</label>
-            <input type="number" class="form-control" @bind="editingBook.NextReceiptNo" />
-        </div>
-
-        <button class="btn btn-success me-2" @onclick="SaveBook">💾 Save</button>
-        <button class="btn btn-secondary" @onclick="CancelEdit">❌ Cancel</button>
     </div>
 }
 
 @code {
     private List<ReceiptBookMain>? books;
-    private ReceiptBookMain? editingBook;
+    private ReceiptBookMain? editBook;
+    private ReceiptBookMain? deleteBook;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        LoadBooks();
+        books = await Db.ReceiptBookMain.ToListAsync();
     }
 
-    private void LoadBooks()
+    private void AddBook()
     {
-        books = Db.GetBooks();
-    }
+        var newBook = new ReceiptBookMain
+        {
+            BookName = "New Doctor",
+            Header1 = "",
+            Header2 = "",
+            Header3 = "",
+            DefaultAmount = 0,
+            DefaultTowards = "",
+            NextReceiptNo = 1
+        };
 
-    private void NewBook()
-    {
-        editingBook = new ReceiptBookMain();
+        books!.Add(newBook);
+        editBook = newBook;
     }
 
     private void EditBook(ReceiptBookMain book)
     {
-        editingBook = new ReceiptBookMain
+        editBook = book;
+    }
+
+    private async Task SaveBook(ReceiptBookMain book)
+    {
+        if (book.BookId == 0) // New record
         {
-            BookId = book.BookId,
-            DoctorName = book.DoctorName,
-            Header1 = book.Header1,
-            Header2 = book.Header2,
-            Header3 = book.Header3,
-            DefaultAmount = book.DefaultAmount,
-            DefaultTowards = book.DefaultTowards,
-            NextReceiptNo = book.NextReceiptNo
-        };
-    }
-
-    private void SaveBook()
-    {
-        if (editingBook == null) return;
-
-        if (editingBook.BookId == 0)
-            Db.AddBook(editingBook);
+            Db.ReceiptBookMain.Add(book);
+        }
         else
-            Db.UpdateBook(editingBook);
+        {
+            Db.ReceiptBookMain.Update(book);
+        }
 
-        editingBook = null;
-        LoadBooks();
-    }
-
-    private void DeleteBook(int id)
-    {
-        Db.DeleteBook(id);
-        LoadBooks();
+        await Db.SaveChangesAsync();
+        editBook = null;
+        books = await Db.ReceiptBookMain.ToListAsync(); // reload list
     }
 
     private void CancelEdit()
     {
-        editingBook = null;
+        editBook = null;
+        StateHasChanged();
+    }
+
+    private void ConfirmDelete(ReceiptBookMain book)
+    {
+        deleteBook = book;
+    }
+
+    private async Task DeleteBook()
+    {
+        if (deleteBook != null)
+        {
+            Db.ReceiptBookMain.Remove(deleteBook);
+            await Db.SaveChangesAsync();
+            books = await Db.ReceiptBookMain.ToListAsync();
+            deleteBook = null;
+        }
+    }
+
+    private void CancelDelete()
+    {
+        deleteBook = null;
     }
 }
