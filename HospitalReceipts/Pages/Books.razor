@@ -1,0 +1,136 @@
+﻿@page "/books"
+@inject HospitalReceipts.Data.DatabaseService Db
+@using HospitalReceipts.Models
+
+<h3>Receipt Books</h3>
+
+<button class="btn btn-primary mb-3" @onclick="NewBook">➕ Add New Book</button>
+
+@if (books == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>BookId</th>
+                <th>Doctor</th>
+                <th>Next Receipt No</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var book in books)
+            {
+                <tr>
+                    <td>@book.BookId</td>
+                    <td>@book.DoctorName</td>
+                    <td>@book.NextReceiptNo</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-1" @onclick="() => EditBook(book)">✏️ Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteBook(book.BookId)">🗑️ Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (editingBook != null)
+{
+    <div class="card p-3 mt-3">
+        <h5>@(editingBook.BookId == 0 ? "Add New Book" : "Edit Book")</h5>
+        <div class="mb-2">
+            <label>Doctor Name</label>
+            <input class="form-control" @bind="editingBook.DoctorName" />
+        </div>
+        <div class="mb-2">
+            <label>Header1</label>
+            <input class="form-control" @bind="editingBook.Header1" />
+        </div>
+        <div class="mb-2">
+            <label>Header2</label>
+            <input class="form-control" @bind="editingBook.Header2" />
+        </div>
+        <div class="mb-2">
+            <label>Header3</label>
+            <input class="form-control" @bind="editingBook.Header3" />
+        </div>
+        <div class="mb-2">
+            <label>Default Amount</label>
+            <input type="number" class="form-control" @bind="editingBook.DefaultAmount" />
+        </div>
+        <div class="mb-2">
+            <label>Default Towards</label>
+            <input class="form-control" @bind="editingBook.DefaultTowards" />
+        </div>
+        <div class="mb-2">
+            <label>Next Receipt No</label>
+            <input type="number" class="form-control" @bind="editingBook.NextReceiptNo" />
+        </div>
+
+        <button class="btn btn-success me-2" @onclick="SaveBook">💾 Save</button>
+        <button class="btn btn-secondary" @onclick="CancelEdit">❌ Cancel</button>
+    </div>
+}
+
+@code {
+    private List<ReceiptBookMain>? books;
+    private ReceiptBookMain? editingBook;
+
+    protected override void OnInitialized()
+    {
+        LoadBooks();
+    }
+
+    private void LoadBooks()
+    {
+        books = Db.GetBooks();
+    }
+
+    private void NewBook()
+    {
+        editingBook = new ReceiptBookMain();
+    }
+
+    private void EditBook(ReceiptBookMain book)
+    {
+        editingBook = new ReceiptBookMain
+        {
+            BookId = book.BookId,
+            DoctorName = book.DoctorName,
+            Header1 = book.Header1,
+            Header2 = book.Header2,
+            Header3 = book.Header3,
+            DefaultAmount = book.DefaultAmount,
+            DefaultTowards = book.DefaultTowards,
+            NextReceiptNo = book.NextReceiptNo
+        };
+    }
+
+    private void SaveBook()
+    {
+        if (editingBook == null) return;
+
+        if (editingBook.BookId == 0)
+            Db.AddBook(editingBook);
+        else
+            Db.UpdateBook(editingBook);
+
+        editingBook = null;
+        LoadBooks();
+    }
+
+    private void DeleteBook(int id)
+    {
+        Db.DeleteBook(id);
+        LoadBooks();
+    }
+
+    private void CancelEdit()
+    {
+        editingBook = null;
+    }
+}
