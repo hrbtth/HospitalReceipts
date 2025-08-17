@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36408.4 d17.14
+VisualStudioVersion = 17.14.36408.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HospitalReceipts", "HospitalReceipts\HospitalReceipts.csproj", "{9977DDEB-229D-4C20-B4A6-6E5C8648251B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HospitalRedeiptsLauncher", "HospitalRedeiptsLauncher\HospitalRedeiptsLauncher.csproj", "{6D0AC07F-9424-4826-8C73-4546A3910114}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{9977DDEB-229D-4C20-B4A6-6E5C8648251B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9977DDEB-229D-4C20-B4A6-6E5C8648251B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9977DDEB-229D-4C20-B4A6-6E5C8648251B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D0AC07F-9424-4826-8C73-4546A3910114}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D0AC07F-9424-4826-8C73-4546A3910114}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D0AC07F-9424-4826-8C73-4546A3910114}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D0AC07F-9424-4826-8C73-4546A3910114}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

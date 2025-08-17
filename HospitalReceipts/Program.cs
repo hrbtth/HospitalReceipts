@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+
 // --- Database setup ---
 var dbPath = Path.Combine(builder.Environment.ContentRootPath, "Data", "hospital_receipts.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -14,6 +16,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
+
+// Force kestrel to use fixed port
+builder.WebHost.UseUrls("http://localhost:5000");
 
 var app = builder.Build();
 
