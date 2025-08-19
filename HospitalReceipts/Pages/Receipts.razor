@@ -1,0 +1,267 @@
+﻿@page "/receipts"
+@using System.Linq
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using HospitalReceipts.Data
+@using HospitalReceipts.Models
+@inject AppDbContext _context
+
+<h3>Receipts</h3>
+
+<div class="row">
+    <!-- Left: books -->
+    <div class="col-3 border-end" style="max-height:80vh; overflow-y:auto;">
+        <h5 class="mt-2">Receipt Books</h5>
+        <ul class="list-group">
+            @foreach (var b in books)
+            {
+                <li class="list-group-item list-group-item-action @(b.BookId == selectedBookId ? "active" : "")"
+                    style="cursor:pointer"
+                    @onclick="() => SelectBook(b.BookId)">
+                    @b.BookName
+                </li>
+            }
+        </ul>
+    </div>
+
+    <!-- Right: receipts -->
+    <div class="col-9">
+        <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
+            <h5>Receipts for @selectedBookName</h5>
+            <div>
+                <button class="btn btn-primary me-2" @onclick="ShowAddModal" disabled="@(!IsBookSelected)">Add</button>
+                <button class="btn btn-warning me-2" @onclick="ShowEditModal" disabled="@(!IsReceiptSelected)">Edit</button>
+                <button class="btn btn-danger" @onclick="DeleteSelected" disabled="@(!IsReceiptSelected)">Delete</button>
+            </div>
+        </div>
+
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Amount</th>
+                    <th>Towards</th>
+                    <th>Printed</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in receipts)
+                {
+                    <tr class="@(selectedReceiptId == r.ReceiptId ? "table-active" : "")"
+                        style="cursor:pointer"
+                        @onclick="() => SelectReceipt(r.ReceiptId)">
+                        <td>@r.ReceiptNo</td>
+                        <td>@r.Date.ToString("dd-MM-yyyy")</td>
+                        <td>@r.Name</td>
+                        <td>@r.Amount</td>
+                        <td>@r.Towards</td>
+                        <td>@r.Printed</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Modal (Blazor-controlled, no JS needed) -->
+@if (showModal)
+{
+    <div class="modal fade show" style="display:block; background:rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@modalTitle Receipt</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <EditForm Model="editReceipt" OnValidSubmit="SaveReceipt">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-2">
+                            <label class="form-label">Receipt No</label>
+                            <InputNumber class="form-control" @bind-Value="editReceipt.ReceiptNo" />
+                            <small class="text-muted">Auto-filled from book NextReceiptNo; you can override.</small>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Date</label>
+                            <InputDate class="form-control" @bind-Value="editReceipt.Date" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Name</label>
+                            <InputText class="form-control" @bind-Value="editReceipt.Name" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Amount</label>
+                            <InputNumber class="form-control" @bind-Value="editReceipt.Amount" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Towards</label>
+                            <InputText class="form-control" @bind-Value="editReceipt.Towards" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Printed</label>
+                            <InputNumber class="form-control" @bind-Value="editReceipt.Printed" />
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // State
+    private List<ReceiptBookMain> books = new();
+    private List<Receipt> receipts = new();
+
+    private int selectedBookId;
+    private string selectedBookName = "";
+    private int selectedReceiptId;
+
+    private bool IsBookSelected => selectedBookId > 0;
+    private bool IsReceiptSelected => selectedReceiptId > 0;
+
+    // Modal state
+    private bool showModal = false;
+    private string modalTitle = "";
+    private Receipt editReceipt = new Receipt();
+
+    protected override void OnInitialized()
+    {
+        // Load books
+        books = _context.ReceiptBookMain
+            .AsNoTracking()
+            .OrderBy(b => b.BookName)
+            .ToList();
+    }
+
+    private void SelectBook(int bookId)
+    {
+        selectedBookId = bookId;
+        var book = books.FirstOrDefault(b => b.BookId == bookId);
+        selectedBookName = book != null ? book.BookName : "";
+
+        receipts = _context.Receipts
+            .AsNoTracking()
+            .Where(r => r.BookId == bookId)
+            .OrderBy(r => r.ReceiptNo)
+            .ToList();
+
+        selectedReceiptId = 0;
+    }
+
+    private void SelectReceipt(int receiptId)
+    {
+        selectedReceiptId = receiptId;
+    }
+
+    private void ShowAddModal()
+    {
+        if (!IsBookSelected) return;
+
+        var book = _context.ReceiptBookMain
+            .AsNoTracking()
+            .FirstOrDefault(b => b.BookId == selectedBookId);
+        if (book == null) return;
+
+        editReceipt = new Receipt
+        {
+            ReceiptId = 0,
+            BookId = selectedBookId,
+            ReceiptNo = book.NextReceiptNo,
+            Date = DateTime.Today,
+            Name = "",
+            Amount = book.DefaultAmount.HasValue ? (double)book.DefaultAmount.Value : 0d,
+            Towards = book.DefaultTowards,
+            Printed = 0
+        };
+
+        modalTitle = "Add";
+        showModal = true;
+    }
+
+    private void ShowEditModal()
+    {
+        if (!IsReceiptSelected) return;
+
+        var r = _context.Receipts
+            .AsNoTracking()
+            .FirstOrDefault(x => x.ReceiptId == selectedReceiptId);
+        if (r == null) return;
+
+        editReceipt = new Receipt
+        {
+            ReceiptId = r.ReceiptId,
+            BookId = r.BookId,
+            ReceiptNo = r.ReceiptNo,
+            Date = r.Date,
+            Name = r.Name,
+            Amount = r.Amount,
+            Towards = r.Towards,
+            Printed = r.Printed
+        };
+
+        modalTitle = "Edit";
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private void DeleteSelected()
+    {
+        if (!IsReceiptSelected) return;
+
+        var rec = _context.Receipts.FirstOrDefault(x => x.ReceiptId == selectedReceiptId);
+        if (rec == null) return;
+
+        _context.Receipts.Remove(rec);
+        _context.SaveChanges();
+
+        SelectBook(selectedBookId);
+    }
+
+    private void SaveReceipt()
+    {
+        if (editReceipt.ReceiptId == 0)
+        {
+            // Add new
+            _context.Receipts.Add(editReceipt);
+
+            // Update NextReceiptNo if needed
+            var book = _context.ReceiptBookMain.FirstOrDefault(b => b.BookId == editReceipt.BookId);
+            if (book != null)
+            {
+                if (editReceipt.ReceiptNo >= book.NextReceiptNo)
+                    book.NextReceiptNo = editReceipt.ReceiptNo + 1;
+            }
+        }
+        else
+        {
+            // Update existing
+            _context.Receipts.Update(editReceipt);
+        }
+
+        _context.SaveChanges();
+        showModal = false;
+
+        // Reload current book
+        SelectBook(selectedBookId);
+    }
+}

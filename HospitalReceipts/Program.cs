@@ -18,7 +18,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
 
 // Force kestrel to use fixed port
-builder.WebHost.UseUrls("http://localhost:5000");
+//builder.WebHost.UseUrls("http://localhost:5000");
 
 var app = builder.Build();
 

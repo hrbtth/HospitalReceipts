@@ -2,6 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Net.Http;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -19,64 +22,68 @@ class Program
         // Now into HospitalReceiptsServerApp
         string serverExe = Path.Combine(parentDir, "HospitalReceiptsServerApp", "HospitalReceipts.exe");
 
-        // Debug info
-        //MessageBox.Show($"Looking for HospitalReceipts.exe at:\n{serverExe}", "Debug Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
         if (!File.Exists(serverExe))
         {
             MessageBox.Show($"Cannot find HospitalReceipts.exe at:\n{serverExe}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
-        //-------
-        // Folder where HospitalReceiptsLauncher.exe is located
-        //string launcherDir = AppDomain.CurrentDomain.BaseDirectory;
+        //  Find a free port
+        int port;
+        using (var listener = new TcpListener(IPAddress.Loopback, 0))
+        {
+            listener.Start();
+            port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        }
 
-        //// Go up one level, then into HospitalReceiptsServerApp
-        //string parentDir = Directory.GetParent(launcherDir)!.FullName;
-        //string serverExe = Path.Combine(parentDir, "HospitalReceiptsServerApp", "HospitalReceipts.exe");
-        //// Show the full path being used
-        //MessageBox.Show("Looking for HospitalReceipts.exe at:\n" + serverExe,
-        //                "Debug Info",
-        //                MessageBoxButtons.OK,
-        //                MessageBoxIcon.Information);
-        //if (!File.Exists(serverExe))
-        //{
-        //    MessageBox.Show(
-        //        "Cannot find HospitalReceipts.exe at:\n" + serverExe,
-        //        "Error",
-        //        MessageBoxButtons.OK,
-        //        MessageBoxIcon.Error
-        //    );
-        //    return;
-        //}
-        ////------------------
-        // Start the server with correct working directory
+        string url = $"http://localhost:{port}";
+
+        //  Start the server with dynamic port
         var serverProcess = Process.Start(new ProcessStartInfo
         {
             FileName = serverExe,
+            Arguments = $"--urls {url}",   // pass port to server
             WorkingDirectory = Path.GetDirectoryName(serverExe)!,
-            UseShellExecute = true
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
         });
 
         if (serverProcess == null)
         {
-            MessageBox.Show(
-                "Failed to start HospitalReceipts.exe",
-                "Error",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error
-            );
+            MessageBox.Show("Failed to start HospitalReceipts.exe", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
-        // Wait a little for server to boot
-        Thread.Sleep(2000);
+        //  Wait for server to respond
+        using (var httpClient = new HttpClient())
+        {
+            var timeout = TimeSpan.FromSeconds(15);
+            var start = DateTime.Now;
 
-        // Open browser
+            while (DateTime.Now - start < timeout)
+            {
+                try
+                {
+                    var response = httpClient.GetAsync(url).Result;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        break; // server is ready
+                    }
+                }
+                catch
+                {
+                    // server not ready yet
+                }
+
+                Thread.Sleep(500);
+            }
+        }
+
+        // Open browser once server is ready
         Process.Start(new ProcessStartInfo
         {
-            FileName = "http://localhost:5000",
+            FileName = url,
             UseShellExecute = true
         });
 
@@ -105,5 +112,8 @@ class Program
                 break;
             }
         }
+
+        serverProcess?.Dispose();
+        Environment.Exit(0);
     }
 }
