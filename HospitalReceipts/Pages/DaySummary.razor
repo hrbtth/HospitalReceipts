@@ -1,0 +1,159 @@
+﻿@page "/day-summary/{bookId:int}/{dateStr}"
+@using System.Globalization
+@using Microsoft.EntityFrameworkCore
+@using HospitalReceipts.Data
+@using HospitalReceipts.Models
+@inject AppDbContext _context
+@inject IJSRuntime JS
+
+@code {
+    [Parameter] public int bookId { get; set; }
+    [Parameter] public string dateStr { get; set; } = "";
+
+    private string bookName = "";
+    private DateTime date = DateTime.Today;
+    private List<Receipt> receipts = new();
+    private double totalAmount = 0;
+
+    protected override void OnParametersSet()
+    {
+        // Parse date parameter robustly (accepts many formats; fallback to today)
+        if (!DateTime.TryParse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        {
+            date = DateTime.Today;
+        }
+
+        var book = _context.ReceiptBookMain
+            .AsNoTracking()
+            .FirstOrDefault(b => b.BookId == bookId);
+
+        bookName = book != null ? book.BookName : $"Book {bookId}";
+
+        receipts = _context.Receipts
+            .AsNoTracking()
+            .Where(r => r.BookId == bookId && r.Date.Date == date.Date)
+            .OrderBy(r => r.ReceiptNo)
+            .ToList();
+
+        totalAmount = receipts.Sum(r => r.Amount);
+    }
+
+    private async Task PrintPage()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+}
+
+<!-- Toolbar (will not appear on print) -->
+<div class="no-print" style="margin-bottom:12px;">
+    <button class="btn btn-primary" @onclick="PrintPage">Print</button>
+</div>
+
+<div class="day-summary">
+    <div class="summary-body">
+        <div class="summary-section">
+            <div class="summary-header">
+                <div class="bookname">@bookName</div>
+                <div class="date">@date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)</div>
+            </div>
+
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th style="width:20%">Receipt No</th>
+                        <th style="width:50%">Name</th>
+                        <th style="width:30%; text-align:right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in receipts)
+                    {
+                        <tr>
+                            <td>@r.ReceiptNo</td>
+                            <td>@r.Name</td>
+                            <td style="text-align:right">@r.Amount.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="summary-total">
+                <b>Total: @totalAmount.ToString("C")</b>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
+    /* Hide toolbar on print */
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+    }
+
+    .day-summary {
+        width: 100%;
+    }
+
+    /* Two-column flow across the page; items flow left column then right column */
+    .summary-body {
+        column-count: 2;
+        column-gap: 20px;
+        column-fill: auto;
+    }
+
+    /* Keep each logical block together */
+    .summary-section {
+        display: inline-block;
+        width: 100%;
+        break-inside: avoid;
+    }
+
+    /* Header sits at top of the column */
+    .summary-header {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+        .summary-header .bookname {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .summary-header .date {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+    /* Table styling */
+    .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+        .summary-table th, .summary-table td {
+            border-bottom: 1px solid #ccc;
+            padding: 4px;
+            break-inside: avoid;
+        }
+
+        .summary-table thead {
+            display: table-header-group; /* helps header repeat on page breaks */
+        }
+
+    /* Total aligned within the column, not the full page */
+    .summary-total {
+        text-align: right;
+        font-weight: bold;
+        margin-top: 10px;
+        break-inside: avoid;
+    }
+</style>

@@ -24,7 +24,6 @@
     {
         if (firstRender && receipt != null)
         {
-            // Run JavaScript print after rendering
             await JS.InvokeVoidAsync("eval", "setTimeout(() => window.print(), 300)");
         }
     }
@@ -36,53 +35,124 @@
 }
 else
 {
-    <div id="printableArea" style="background:white; padding:10mm; font-family:Arial; font-size:14px; width:148mm; height:105mm;">
-        
-        <div style="text-align:center; font-size:18px; font-weight:bold;">
-            @book.Header1
+    <div id="printableArea" class="page">
+        <div class="receipt">
+            <div class="header1">@book.Header1</div>
+            <div class="header2">@book.Header2</div>
+            <div class="header3">@book.Header3</div>
+            <div class="header2" style="margin-bottom:15px;margin-top:5px;">@book.BookName </div>
+            
+            
+            <table class="receipt-table">
+                
+                <tr>
+                    <td><b>Receipt No:</b> @receipt.ReceiptNo</td>
+                    <td style="text-align:right"><b>Date:</b> @receipt.Date.ToString("dd-MM-yyyy")</td>
+                </tr>
+                <!-- Blank row for spacing -->
+                <tr><td  colspan="2" style="height:12px;"></td></tr>
+                <tr>
+                    <td class="tall-row" colspan="2"><b>Received From:</b> @receipt.Name</td>
+                </tr>
+                <tr>
+                    <td class="tall-row" colspan="2"><b>An Amount of:</b> @receipt.Amount.ToString("C")</td>
+                </tr>
+                <tr>
+                    <td class="tall-row" colspan="2"><b>Towards:</b> @receipt.Towards</td>
+                </tr>
+                <!-- Blank row for spacing -->
+                <tr><td colspan="2" style="height:12px;"></td></tr>
+                <tr>
+                    <td></td>
+                    <td style="text-align:center; border-top:1px dotted black; padding-top:5px;">
+                        <b>Signature</b>
+                    </td>
+                </tr>
+                    </table>
         </div>
-        <div style="text-align:center; font-size:16px;">
-            @book.Header2
-        </div>
-        <div style="text-align:center; font-size:14px; margin-bottom:10px;">
-            @book.Header3
-        </div>
-
-        <table style="width:100%; border-collapse:collapse; font-size:14px;">
-            <tr>
-                <td><b>No:</b> @receipt.ReceiptNo</td>
-                <td style="text-align:right"><b>Date:</b> @receipt.Date.ToString("dd-MM-yyyy")</td>
-            </tr>
-            <tr>
-                <td colspan="2"><b>Name:</b> @receipt.Name</td>
-            </tr>
-            <tr>
-                <td colspan="2"><b>Amount:</b> @receipt.Amount.ToString("C")</td>
-            </tr>
-            <tr>
-                <td colspan="2"><b>Towards:</b> @receipt.Towards</td>
-            </tr>
-        </table>
     </div>
 }
+
 <style>
-    @@media print {
-        body *
-
-    {
-        visibility: hidden; /* hide everything */
+    /* A6 landscape page with NO default margins */
+    @@page {
+        size: A6 landscape;
+        margin: 0;
     }
 
-    #printableArea, #printableArea * {
-        visibility: visible; /* only show receipt */
+    body, html {
+        height: 100%;
+        margin: 0;
     }
 
-    #printableArea {
-        position: absolute;
-        left: 0;
-        top: 0;
+    /* Page wrapper: apply outer margin */
+    .page {
+        width: 148mm;
+        height: 105mm;
+        padding: 10mm;              /* <-- this creates white space margin all around --></>*/
+        box-sizing: border-box;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Receipt box inside the margin */
+    .receipt {
         width: 100%;
+        height: 100%;
+        border: 1px solid black;
+        background: white;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        padding: 5mm; /* inner padding for text, optional */
     }
 
+    .header1 {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .header2 {
+        text-align: center;
+        font-size: 16px;
+    }
+
+    .header3 {
+        text-align: center;
+        font-size: 14px;
+        
+    }
+
+    .receipt-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .tall-row  {
+        font-size: 16px; /* bigger text */
+        line-height: 1.8; /* taller row */
+        padding-top: 0px; /* extra space above */
+        padding-bottom: 2px; /* extra space below */
+    }
+
+    @@media print {
+        body * {
+            visibility: hidden;
+        }
+        #printableArea, #printableArea * {
+            visibility: visible;
+        }
+        #printableArea {
+            position: absolute;
+            inset: 0;
+        }
     }
 </style>

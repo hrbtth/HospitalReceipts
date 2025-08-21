@@ -5,7 +5,7 @@
 @using HospitalReceipts.Data
 @using HospitalReceipts.Models
 @inject AppDbContext _context
-@inject NavigationManager NavManager   
+@inject NavigationManager NavManager
 
 <h3>Receipts</h3>
 
@@ -30,13 +30,8 @@
         <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
             <h5>Receipts for @selectedBookName</h5>
             <div>
-                <!-- Changed Print button -->
-                <button class="btn btn-primary me-2" 
-                        @onclick="PrintReceipt" 
-                        disabled="@(!IsReceiptSelected)">
-                    Print Receipt
-                </button>
-
+                <button class="btn btn-primary me-2" @onclick="PrintReceipt" disabled="@(!IsReceiptSelected)">Print Receipt</button>
+                <button class="btn btn-info me-2" @onclick="ShowDaySummaryModal" disabled="@(!IsBookSelected)">Day Summary</button>
                 <button class="btn btn-primary me-2" @onclick="ShowAddModal" disabled="@(!IsBookSelected)">Add</button>
                 <button class="btn btn-warning me-2" @onclick="ShowEditModal" disabled="@(!IsReceiptSelected)">Edit</button>
                 <button class="btn btn-danger" @onclick="DeleteSelected" disabled="@(!IsReceiptSelected)">Delete</button>
@@ -73,7 +68,86 @@
     </div>
 </div>
 
-<!-- Add/Edit Modal stays the same... -->
+<!-- Add/Edit Modal -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@modalTitle Receipt</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(saveError))
+                    {
+                        <div class="alert alert-danger">@saveError</div>
+                    }
+
+                    <EditForm Model="editReceipt" OnValidSubmit="SaveReceipt">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label class="form-label">Receipt No</label>
+                            <InputNumber class="form-control" @bind-Value="editReceipt.ReceiptNo" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <InputDate class="form-control" @bind-Value="editReceipt.Date" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <InputText class="form-control" @bind-Value="editReceipt.Name" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount</label>
+                            <InputNumber class="form-control" @bind-Value="editReceipt.Amount" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Towards</label>
+                            <InputText class="form-control" @bind-Value="editReceipt.Towards" />
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                }
+                                Save
+                            </button>
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal" disabled="@isSaving">Cancel</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Day Summary Modal -->
+@if (showDaySummaryModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Day Summary</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDaySummaryModal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Select Date</label>
+                    <InputDate @bind-Value="daySummaryDate" class="form-control" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @onclick="NavigateToDaySummary">OK</button>
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDaySummaryModal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     // State
@@ -87,30 +161,38 @@
     private bool IsBookSelected => selectedBookId > 0;
     private bool IsReceiptSelected => selectedReceiptId > 0;
 
-    // Modal state
+    // Add/Edit modal state
     private bool showModal = false;
     private string modalTitle = "";
     private Receipt editReceipt = new Receipt();
 
-    protected override void OnInitialized()
+    // Day Summary modal state
+    private bool showDaySummaryModal = false;
+    private DateTime daySummaryDate = DateTime.Today;
+
+    // Save state
+    private bool isSaving = false;
+    private string saveError = null;
+
+    protected override async Task OnInitializedAsync()
     {
-        books = _context.ReceiptBookMain
+        books = await _context.ReceiptBookMain
             .AsNoTracking()
             .OrderBy(b => b.BookName)
-            .ToList();
+            .ToListAsync();
     }
 
-    private void SelectBook(int bookId)
+    private async Task SelectBook(int bookId)
     {
         selectedBookId = bookId;
         var book = books.FirstOrDefault(b => b.BookId == bookId);
         selectedBookName = book != null ? book.BookName : "";
 
-        receipts = _context.Receipts
+        receipts = await _context.Receipts
             .AsNoTracking()
             .Where(r => r.BookId == bookId)
-            .OrderBy(r => r.ReceiptNo)
-            .ToList();
+            .OrderByDescending(r => r.ReceiptNo)   // DESC: latest first
+            .ToListAsync();
 
         selectedReceiptId = 0;
     }
@@ -120,13 +202,13 @@
         selectedReceiptId = receiptId;
     }
 
-    private void ShowAddModal()
+    private async Task ShowAddModal()
     {
         if (!IsBookSelected) return;
 
-        var book = _context.ReceiptBookMain
+        var book = await _context.ReceiptBookMain
             .AsNoTracking()
-            .FirstOrDefault(b => b.BookId == selectedBookId);
+            .FirstOrDefaultAsync(b => b.BookId == selectedBookId);
         if (book == null) return;
 
         editReceipt = new Receipt
@@ -142,18 +224,20 @@
         };
 
         modalTitle = "Add";
+        saveError = null;
         showModal = true;
     }
 
-    private void ShowEditModal()
+    private async Task ShowEditModal()
     {
         if (!IsReceiptSelected) return;
 
-        var r = _context.Receipts
+        var r = await _context.Receipts
             .AsNoTracking()
-            .FirstOrDefault(x => x.ReceiptId == selectedReceiptId);
+            .FirstOrDefaultAsync(x => x.ReceiptId == selectedReceiptId);
         if (r == null) return;
 
+        // detached copy - safe for EF operations
         editReceipt = new Receipt
         {
             ReceiptId = r.ReceiptId,
@@ -167,6 +251,7 @@
         };
 
         modalTitle = "Edit";
+        saveError = null;
         showModal = true;
     }
 
@@ -175,47 +260,88 @@
         showModal = false;
     }
 
-    private void DeleteSelected()
+    private async Task DeleteSelected()
     {
         if (!IsReceiptSelected) return;
 
-        var rec = _context.Receipts.FirstOrDefault(x => x.ReceiptId == selectedReceiptId);
+        var rec = await _context.Receipts.FirstOrDefaultAsync(x => x.ReceiptId == selectedReceiptId);
         if (rec == null) return;
 
         _context.Receipts.Remove(rec);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
 
-        SelectBook(selectedBookId);
+        await SelectBook(selectedBookId);
     }
 
-    private void SaveReceipt()
+    private async Task SaveReceipt()
     {
-        if (editReceipt.ReceiptId == 0)
-        {
-            _context.Receipts.Add(editReceipt);
+        isSaving = true;
+        saveError = null;
 
-            var book = _context.ReceiptBookMain.FirstOrDefault(b => b.BookId == editReceipt.BookId);
-            if (book != null)
+        try
+        {
+            if (editReceipt == null)
+                throw new InvalidOperationException("No receipt to save.");
+
+            if (editReceipt.ReceiptId == 0)
             {
-                if (editReceipt.ReceiptNo >= book.NextReceiptNo)
-                    book.NextReceiptNo = editReceipt.ReceiptNo + 1;
+                _context.Receipts.Add(editReceipt);
+
+                var book = await _context.ReceiptBookMain.FirstOrDefaultAsync(b => b.BookId == editReceipt.BookId);
+                if (book != null)
+                {
+                    if (editReceipt.ReceiptNo >= book.NextReceiptNo)
+                        book.NextReceiptNo = editReceipt.ReceiptNo + 1;
+                }
             }
+            else
+            {
+                // update detached entity
+                _context.Receipts.Update(editReceipt);
+            }
+
+            await _context.SaveChangesAsync();
+
+            showModal = false;
+            await SelectBook(selectedBookId);
         }
-        else
+        catch (Exception ex)
         {
-            _context.Receipts.Update(editReceipt);
+            // surface the message in UI so user knows why it failed
+            saveError = ex.Message;
+            Console.WriteLine("SaveReceipt error: " + ex.ToString());
         }
-
-        _context.SaveChanges();
-        showModal = false;
-
-        SelectBook(selectedBookId);
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
     }
 
-    //PrintReceipt just navigates
+    // Print
     private void PrintReceipt()
     {
         if (!IsReceiptSelected) return;
         NavManager.NavigateTo($"/receipt-print/{selectedReceiptId}");
+    }
+
+    // Day Summary
+    private void ShowDaySummaryModal()
+    {
+        if (!IsBookSelected) return;
+        daySummaryDate = DateTime.Today;  // prefill
+        showDaySummaryModal = true;
+    }
+
+    private void CloseDaySummaryModal()
+    {
+        showDaySummaryModal = false;
+    }
+
+    private void NavigateToDaySummary()
+    {
+        showDaySummaryModal = false;
+        var dateStr = daySummaryDate.ToString("yyyy-MM-dd");
+        NavManager.NavigateTo($"/day-summary/{selectedBookId}/{dateStr}");
     }
 }
