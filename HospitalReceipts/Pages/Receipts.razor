@@ -155,8 +155,11 @@
                     <button type="button" class="btn-close" @onclick="CloseDaySummaryModal"></button>
                 </div>
                 <div class="modal-body">
-                    <label class="form-label">Select Date</label>
-                    <InputDate @bind-Value="daySummaryDate" class="form-control" />
+                    <label class="form-label">From Date</label>
+                    <InputDate @bind-Value="daySummaryFrom" class="form-control" />
+
+                    <label class="form-label mt-2">To Date</label>
+                    <InputDate @bind-Value="daySummaryTo" class="form-control" />
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" @onclick="NavigateToDaySummary">OK</button>
@@ -193,8 +196,9 @@
     private Receipt editReceipt = new Receipt();
 
     // Day Summary modal state
-    private bool showDaySummaryModal = false;
-    private DateTime daySummaryDate = DateTime.Today;
+    private bool showDaySummaryModal = false;    
+    private DateTime daySummaryFrom = DateTime.Today;
+    private DateTime daySummaryTo = DateTime.Today;
 
     // Save state
     private bool isSaving = false;
@@ -384,7 +388,8 @@
     private void ShowDaySummaryModal()
     {
         if (!IsBookSelected) return;
-        daySummaryDate = DateTime.Today;
+        daySummaryFrom = DateTime.Today;
+        daySummaryTo = daySummaryFrom;
         showDaySummaryModal = true;
     }
 
@@ -392,9 +397,12 @@
 
     private void NavigateToDaySummary()
     {
-        showDaySummaryModal = false;
-        var dateStr = daySummaryDate.ToString("yyyy-MM-dd");
-        NavManager.NavigateTo($"/day-summary/{selectedBookId}/{dateStr}");
+        // Navigate with both dates in yyyy-MM-dd format
+        var fromStr = daySummaryFrom.ToString("yyyy-MM-dd");
+        var toStr = daySummaryTo.ToString("yyyy-MM-dd");
+
+        NavManager.NavigateTo($"/day-summary/{selectedBookId}/{fromStr}/{toStr}");
+        CloseDaySummaryModal();
     }
 
     private void ToggleLeftPanel() => hideLeftPanel = !hideLeftPanel;

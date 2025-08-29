@@ -1,4 +1,4 @@
-﻿@page "/day-summary/{bookId:int}/{dateStr}"
+﻿@page "/day-summary/{bookId:int}/{dateFromStr}/{dateToStr}"
 @using System.Globalization
 @using Microsoft.EntityFrameworkCore
 @using HospitalReceipts.Data
@@ -8,20 +8,34 @@
 
 @code {
     [Parameter] public int bookId { get; set; }
-    [Parameter] public string dateStr { get; set; } = "";
-
     private string bookName = "";
-    private DateTime date = DateTime.Today;
-    private List<Receipt> receipts = new();
-    private double totalAmount = 0;
+    [Parameter] public string dateFromStr { get; set; } = "";
+    [Parameter] public string dateToStr { get; set; } = "";
+    private DateTime dateFrom = DateTime.Today;
+    private DateTime dateTo = DateTime.Today;
+
+    private class DayGroup
+    {
+        public DateTime Date { get; set; }
+        public List<Receipt> Receipts { get; set; } = new();
+        public double TotalAmount => Receipts.Sum(r => r.Amount);
+    }
+
+
+    private List<DayGroup> dayGroups = new();
+    private double grandTotalAmount = 0;
     private string reportHeaderTxt = "";
     private string pageFooterTxt = "";
 
     protected override void OnParametersSet()
     {
-        if (!DateTime.TryParse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        if (!DateTime.TryParse(dateFromStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out dateFrom))
         {
-            date = DateTime.Today;
+            dateFrom = DateTime.Today;
+        }
+        if (!DateTime.TryParse(dateToStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out dateTo))
+        {
+            dateTo = dateFrom; // fallback to same day if parsing fails
         }
 
         var book = _context.ReceiptBookMain
@@ -30,16 +44,34 @@
 
         bookName = book != null ? book.BookName : $"Book {bookId}";
 
-        receipts = _context.Receipts
-            .AsNoTracking()
-            .Where(r => r.BookId == bookId && r.Date.Date == date.Date)
-            .OrderBy(r => r.ReceiptNo)
+        var rawReceipts = _context.Receipts
+    .AsNoTracking()
+    .Where(r => r.BookId == bookId && r.Date.Date >= dateFrom.Date && r.Date.Date <= dateTo.Date)
+    .OrderBy(r => r.Date)
+    .ThenBy(r => r.ReceiptNo)
+    .ToList();
+
+        dayGroups = rawReceipts
+            .GroupBy(r => r.Date.Date)
+            .Select(g => new DayGroup
+                {
+                    Date = g.Key,
+                    Receipts = g.ToList()
+                })
+            .OrderBy(g => g.Date)
             .ToList();
 
-        totalAmount = receipts.Sum(r => r.Amount);
-        reportHeaderTxt = $"{bookName} - Day Summary for {date:dd MMM yyyy}";
-        pageFooterTxt = $"{bookName} for {date:dd MMM yyyy}, Generated on {DateTime.Now:dd MMM yyyy HH:mm}";
+        grandTotalAmount = dayGroups.Sum(g => g.TotalAmount);
+        if (dateFrom == dateTo)
+        {
+            reportHeaderTxt = $"{bookName} - Day Summary for {dateFrom:dd MMM yyyy}";
+            pageFooterTxt = $"{bookName} for {dateFrom:dd MMM yyyy}, Generated on {DateTime.Now:dd MMM yyyy HH:mm}";
+        }
+        else { 
+        reportHeaderTxt = $"{bookName} - Day Summary from {dateFrom:dd MMM yyyy} to {dateTo:dd MMM yyyy}";
+        pageFooterTxt = $"{bookName} for {dateFrom:dd MMM yyyy} → {dateTo:dd MMM yyyy}, Generated on {DateTime.Now:dd MMM yyyy HH:mm}";
 
+        }
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -64,27 +96,48 @@
 
 <div id="sourceContent" style="display:none">
 
-    <div class="columnHeader">
-        <span>R No</span>
-        <span>Name</span>
-        <span>Amount</span>
-    </div>
-
-    @foreach (var r in receipts)
+    @foreach (var group in dayGroups)
     {
-        <div class="receiptRow">
-            <span>@r.ReceiptNo</span>
-            <span>@r.Name</span>
-            <span>@r.Amount.ToString("#0.00")</span>
+        <!-- Day Header -->
+        <div class="dayHeader">
+            <strong>@group.Date.ToString("dd MMM yyyy")</strong>
         </div>
+
+        <!-- Column Header -->
+        <div class="columnHeader">
+            <span>R No</span>
+            <span>Name</span>
+            <span>Amount</span>
+        </div>
+
+        <!-- Receipts for that day -->
+        @foreach (var r in group.Receipts)
+        {
+            <div class="receiptRow">
+                <span>@r.ReceiptNo</span>
+                <span>@r.Name</span>
+                <span>@r.Amount.ToString("#0.00")</span>
+            </div>
+        }
+
+        <!-- Day Total -->
+        <div class="receiptTotal">
+            <span></span>
+            <span><b>Day Total</b></span>
+            <span><b>@group.TotalAmount.ToString("C")</b></span>
+        </div>
+
+        
     }
 
+    <!-- Grand Total -->
     <div class="receiptTotal">
         <span></span>
-        <span><b>Total</b></span>
-        <span><b>@totalAmount.ToString("C")</b></span>
+        <span><b>Grand Total</b></span>
+        <span><b>@grandTotalAmount.ToString("C")</b></span>
     </div>
 </div>
+
 <!-- Printable Area -->
 <div id="printableArea">
     <div id="pagesContainer">
@@ -177,23 +230,35 @@
     }
 
     /*--------*/
-    .columnHeader, .receiptTotal {
+    .dayHeader{
+        margin-top: 8px;
+        margin-bottom: 4px;
+        padding: 4px;
+        font-size: 14px;
+        font-weight: bold;
+        display: block;
+        border: 2px solid #000;
+        background-color: lightgray !important;
+        justify-content: center;
+        text-align: center;
+
+    }
+    .columnHeader {
         display: flex;
         justify-content: space-between;
-        border-bottom: 1px solid #ccc;
+        
         padding: 4px;
-    }
-
-    .columnHeader {
         font-weight: bold;
         border-bottom: 2px solid black;
     }
+
+   
 
     .receiptRow {
         display: grid;
         grid-template-columns: 50px 1fr 100px; /* ReceiptNo | Name | Amount */
         /*padding: 4px 8px;*/
-        border-bottom: 1px dotted #ccc;
+        border-bottom: 1px solid #ccc;
         
         break-inside: avoid; /* Prevent a row from splitting across columns */
         font-size :16px;
@@ -205,26 +270,31 @@
         .receiptRow span:first-child {
             text-align: right;
             padding-right: 5px;
-            border-left: 1px dotted #ccc;
+            border-left: 1px solid #ccc;
         }
 
         .receiptRow span:nth-child(2) {
             text-align: left;
             padding-left: 5px;
-            border-right: 1px dotted #ccc;
-            border-left: 1px dotted #ccc;
+            border-right: 1px solid #ccc;
+            border-left: 1px solid #ccc;
             
         }
 
         .receiptRow span:last-child {
             text-align: right;
             padding-right: 10px;
-            border-right: 1px dotted #ccc;
+            border-right: 1px solid #ccc;
         }
 
     .receiptTotal {
         border-top: 3px solid black;
-        font-weight: bold;
+        /*font-weight: bold;*/
+        display: flex;
+        justify-content: space-between;
+        /*border-bottom: 1px solid #ccc;*/
+        border-bottom: none;
+        padding: 4px;
     }
 
     /*----------*/
@@ -250,14 +320,7 @@
             top: 0;
         }
 
-        /* .a4page {
-            box-shadow: none;
-            border: none;
-            margin: 0;
-            width: 210mm;
-            height: 297mm;
-            page-break-after: always;
-        } */
+       
 
         .a4page {
             width: 210mm;
