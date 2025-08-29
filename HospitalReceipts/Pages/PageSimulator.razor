@@ -1,0 +1,203 @@
+﻿@page "/page-simulator"
+@inject IJSRuntime JS
+
+
+<h3>Blank Pages Simulation</h3>
+<button class="btn btn-primary" @onclick="GeneratePages">Generate 5 Pages</button>
+<button onclick="window.print()">Print</button>
+<!-- invisible division to render full HTML content first
+<!then from this source, each element is picked and added to visible page.--!>
+<!<div id="sourceContent" style="display:none">     ---------->
+<div id="sourceContent" style="display:none">
+    
+    <div class="columnHeader">
+        <span>Receipt No</span>
+        <span>Name</span>
+        <span>Amount</span>
+    </div>
+
+    @for (int i = 1; i <= 200; i++)
+    {
+            <div class="receiptRow">
+                <span>@i</span>
+                <span>Patient Name</span>
+                <span>@(1000.ToString("C"))</span>
+            </div>
+    }
+
+    <div class="receiptTotal">
+        <span></span>
+        <span><b>Total</b></span>
+        <span><b>@((1000 * 200).ToString("C"))</b></span>
+    </div>
+</div>
+
+
+
+
+<div id="printableArea">
+    <div id="pagesContainer">
+        <!-- Pages will be dynamically added here -->
+    </div>
+    
+        
+</div>
+
+
+@code {
+    int N = 100; // Number of paragraphs to generate
+    private async Task GeneratePages()
+    {        
+        await JS.InvokeVoidAsync("paginateContent");
+    }
+}
+<style>
+    /* Screen view */
+    .a4page {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 auto;
+        padding: 20mm;        
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        background: white;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        position: relative; /* Important: allow absolute children */
+        page-break-after: always;
+        font-size:12;       
+    } 
+    .two-column-container {
+        column-count: 2;
+        column-gap: 10mm;
+        column-fill: auto;       
+        height: calc(297mm - 40mm); /* page height minus header+footer */
+        margin :0;
+        padding:0;
+    }
+
+    .pageContent {
+        flex: 1; /* takes available space between header and footer */
+        text-align: justify;   
+        margin :0;
+        padding:0;
+     }
+    .dummyContainer{
+        background-color: aqua;
+    }
+    
+    
+
+    .pageNumber {
+        position: absolute;
+        top: 10mm;
+        right: 20mm;
+        font-size: 12px;
+        color: black;
+    }
+    .pageHeader{
+        position: absolute;
+        top :0;
+        left:0; 
+        right: 0;
+        height:20mm;
+        border-bottom: 1px solid black; /* header bottom border box */
+        margin-left:10mm;
+        margin-right:10mm;
+        /*background-color: lightblue;*/
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16;
+    }
+
+    
+    
+    .pageFooter{
+        position: absolute;
+        bottom :0;
+        left:0; 
+        right: 0;
+        height:20mm;        
+        margin-left:10mm;
+        margin-right:10mm;
+        border-top: 1px solid black; /* header bottom border box */
+        /*background-color: lightblue;*/
+        display: flex;        
+        align-items: top;
+        justify-content: center;
+        font-weight: normal;
+        font-size: 10;
+    }
+
+    /*--------*/
+    .columnHeader, .receiptTotal {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #ccc;
+        padding: 4px;
+    }
+
+    .columnHeader {
+        font-weight: bold;
+        border-bottom: 2px solid black;
+
+    }
+
+    .receiptRow {
+        display: grid;
+        grid-template-columns: 80px 1fr 100px; /* ReceiptNo | Name | Amount */
+        padding: 4px 8px;
+        border-bottom: 1px dotted #ccc;
+        break-inside: avoid; /* Prevent a row from splitting across columns */
+    }
+
+        .receiptRow span:first-child {
+            text-align: right;
+            padding-right: 15px;
+        }
+
+        .receiptRow span:nth-child(2) {
+            text-align: left;
+            padding-left: 5px;
+        }
+
+        .receiptRow span:last-child {
+            text-align: right;
+            padding-right: 10px;
+        }
+
+    .receiptTotal {
+        border-top: 3px solid black;
+        font-weight: bold;
+    }
+
+    /*----------*/
+    /* Print styles*/
+    /* Remove shadows/borders when printing */
+    @@media print {
+        body * {
+            visibility: hidden; /* hide everything */
+        }
+
+        #printableArea, #printableArea * {
+            visibility: visible; /* only show printable area */
+        }
+
+        #printableArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .a4page {
+            box-shadow: none;
+            border: none;
+            margin: 0;
+            width: 210mm;
+            height: 297mm;
+            page-break-after: always;
+        }
+    }
+
+</style>

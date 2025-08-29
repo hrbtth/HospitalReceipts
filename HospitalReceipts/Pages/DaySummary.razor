@@ -14,10 +14,11 @@
     private DateTime date = DateTime.Today;
     private List<Receipt> receipts = new();
     private double totalAmount = 0;
+    private string reportHeaderTxt = "";
+    private string pageFooterTxt = "";
 
     protected override void OnParametersSet()
     {
-        // Parse date parameter robustly (accepts many formats; fallback to today)
         if (!DateTime.TryParse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
         {
             date = DateTime.Today;
@@ -36,124 +37,243 @@
             .ToList();
 
         totalAmount = receipts.Sum(r => r.Amount);
+        reportHeaderTxt = $"{bookName} - Day Summary for {date:dd MMM yyyy}";
+        pageFooterTxt = $"{bookName} for {date:dd MMM yyyy}, Generated on {DateTime.Now:dd MMM yyyy HH:mm}";
+
     }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("paginateContent", reportHeaderTxt, pageFooterTxt);
+        }
+    }
+
 
     private async Task PrintPage()
     {
-        await JS.InvokeVoidAsync("window.print");
+        await JS.InvokeVoidAsync("eval", "setTimeout(() => window.print(), 300)");
+        
     }
 }
 
-<!-- Toolbar (will not appear on print) -->
+<!-- Toolbar (screen only) -->
 <div class="no-print" style="margin-bottom:12px;">
     <button class="btn btn-primary" @onclick="PrintPage">Print</button>
 </div>
 
-<div class="day-summary">
-    <div class="summary-body">
-        <div class="summary-section">
-            <div class="summary-header">
-                <div class="bookname">@bookName</div>
-                <div class="date">@date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)</div>
-            </div>
+<div id="sourceContent" style="display:none">
 
-            <table class="summary-table">
-                <thead>
-                    <tr>
-                        <th style="width:20%">Receipt No</th>
-                        <th style="width:50%">Name</th>
-                        <th style="width:30%; text-align:right">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var r in receipts)
-                    {
-                        <tr>
-                            <td>@r.ReceiptNo</td>
-                            <td>@r.Name</td>
-                            <td style="text-align:right">@r.Amount.ToString("C")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    <div class="columnHeader">
+        <span>R No</span>
+        <span>Name</span>
+        <span>Amount</span>
+    </div>
 
-            <div class="summary-total">
-                <b>Total: @totalAmount.ToString("C")</b>
-            </div>
+    @foreach (var r in receipts)
+    {
+        <div class="receiptRow">
+            <span>@r.ReceiptNo</span>
+            <span>@r.Name</span>
+            <span>@r.Amount.ToString("#0.00")</span>
         </div>
+    }
+
+    <div class="receiptTotal">
+        <span></span>
+        <span><b>Total</b></span>
+        <span><b>@totalAmount.ToString("C")</b></span>
     </div>
 </div>
+<!-- Printable Area -->
+<div id="printableArea">
+    <div id="pagesContainer">
+        <!-- Pages will be dynamically added here -->
+    </div>
 
+
+</div>
 <style>
-    @@page {
-        size: A4 portrait;
-        margin: 10mm;
+    
+    /* Screen view */
+    .a4page {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 auto;
+        padding: 10mm;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        background: white;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        position: relative; /* Important: allow absolute children */
+        page-break-after: always;
+        /*font-size: 10;*/
     }
 
-    /* Hide toolbar on print */
-    @@media print {
-        .no-print {
-            display: none !important;
-        }
-    }
-
-    .day-summary {
-        width: 100%;
-    }
-
-    /* Two-column flow across the page; items flow left column then right column */
-    .summary-body {
+    .two-column-container {
         column-count: 2;
-        column-gap: 20px;
+        column-gap: 10mm;
         column-fill: auto;
+        height: calc(297mm - 20mm); /* page height minus header+footer */
+        margin: 0;
+        padding: 0;
     }
 
-    /* Keep each logical block together */
-    .summary-section {
-        display: inline-block;
-        width: 100%;
-        break-inside: avoid;
+    .pageContent {
+        flex: 1; /* takes available space between header and footer */
+        text-align: justify;
+        margin: 0;
+        padding: 0;
     }
 
-    /* Header sits at top of the column */
-    .summary-header {
-        text-align: center;
-        margin-bottom: 10px;
+    .dummyContainer {
+        background-color: aqua;
     }
 
-        .summary-header .bookname {
-            font-weight: bold;
-            font-size: 16px;
-        }
 
-        .summary-header .date {
-            font-size: 14px;
-            margin-top: 5px;
-        }
 
-    /* Table styling */
-    .summary-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-        margin-bottom: 10px;
+    .pageNumber {
+        position: absolute;
+        top: 5mm;
+        right: 10mm;
+        font-size: 12px;
+        color: black;
     }
 
-        .summary-table th, .summary-table td {
-            border-bottom: 1px solid #ccc;
-            padding: 4px;
-            break-inside: avoid;
-        }
-
-        .summary-table thead {
-            display: table-header-group; /* helps header repeat on page breaks */
-        }
-
-    /* Total aligned within the column, not the full page */
-    .summary-total {
-        text-align: right;
+    .pageHeader {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 10mm;
+        border-bottom: 1px solid black; /* header bottom border box */
+        margin-left: 10mm;
+        margin-right: 10mm;
+        /*background-color: lightblue;*/
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-weight: bold;
-        margin-top: 10px;
-        break-inside: avoid;
+        font-size: 16px;
     }
+
+
+
+    .pageFooter {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 10mm;
+        margin-left: 10mm;
+        margin-right: 10mm;
+        border-top: 1px solid black; /* header bottom border box */
+        /*background-color: lightblue;*/
+        display: flex;
+        align-items: top;
+        justify-content: center;
+        font-weight: normal;
+        font-size: 10;
+    }
+
+    /*--------*/
+    .columnHeader, .receiptTotal {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #ccc;
+        padding: 4px;
+    }
+
+    .columnHeader {
+        font-weight: bold;
+        border-bottom: 2px solid black;
+    }
+
+    .receiptRow {
+        display: grid;
+        grid-template-columns: 50px 1fr 100px; /* ReceiptNo | Name | Amount */
+        /*padding: 4px 8px;*/
+        border-bottom: 1px dotted #ccc;
+        
+        break-inside: avoid; /* Prevent a row from splitting across columns */
+        font-size :16px;
+        line-height: 20px; /* lock line spacing */
+        height: 22px; /* force exact height */
+        overflow: hidden;
+    }
+
+        .receiptRow span:first-child {
+            text-align: right;
+            padding-right: 5px;
+            border-left: 1px dotted #ccc;
+        }
+
+        .receiptRow span:nth-child(2) {
+            text-align: left;
+            padding-left: 5px;
+            border-right: 1px dotted #ccc;
+            border-left: 1px dotted #ccc;
+            
+        }
+
+        .receiptRow span:last-child {
+            text-align: right;
+            padding-right: 10px;
+            border-right: 1px dotted #ccc;
+        }
+
+    .receiptTotal {
+        border-top: 3px solid black;
+        font-weight: bold;
+    }
+
+    /*----------*/
+    /* Print styles*/
+    /* Remove shadows/borders when printing */
+    @@page {
+        size: A4;
+        margin: 5mm; /*it should be equal to the padding in a4page style,  then in a4page style set padding to 0*/
+    }
+    @@media print {
+        
+        body * {
+            visibility: hidden; /* hide everything */
+        }
+
+        #printableArea, #printableArea * {
+            visibility: visible; /* only show printable area */
+        }
+
+        #printableArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        /* .a4page {
+            box-shadow: none;
+            border: none;
+            margin: 0;
+            width: 210mm;
+            height: 297mm;
+            page-break-after: always;
+        } */
+
+        .a4page {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto;
+            padding: 10mm; 
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            background: white;
+            box-shadow:none;
+            position: relative; /* Important: allow absolute children */
+            page-break-after: always;
+            /*font-size: 10px;*/
+        }
+        
+}
+    }
+
 </style>

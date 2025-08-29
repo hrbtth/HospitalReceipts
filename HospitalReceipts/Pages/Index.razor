@@ -1,9 +1,53 @@
 ﻿@page "/"
 
-<PageTitle>Index</PageTitle>
 
-<h1>Hello, world!</h1>
+<h3>Page Container Demo</h3>
 
-Welcome to your new app.
+<div class="pageContainer">
+    <div class="header">
+        Header
+    </div>
+    <div class="content">
+        <p>This is the content area. It starts just below the header and stays inside the page margin.</p>
+        <p>Resize the page to see how padding and header stay in place.</p>
+    </div>
+</div>
 
+<style>
+    /* Page container simulating a printed page */
+    .pageContainer {
+        position: relative;
+        height: 500px;          /* total page height */
+        width: 400px;           /* page width */
+        padding-top: 15px;      /* top margin of page */
+        padding-bottom: 50px;   /* bottom margin of page */
+        padding-left: 30px;
+        padding-right: 30px;
+        border: 1px solid black; /* outer border of page */
+        background-color: #fff8dc;
+        box-sizing: border-box;
+    }
 
+    
+
+    /* Header block inside top margin */
+    .header {
+        position: absolute;
+        top :0;
+        left:0; 
+        right: 0;
+        border: 1px solid blue; /* header border box */
+        background-color: lightblue;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 12;
+    }
+
+    /* Content area */
+    .content {
+        margin-top: 40px; 
+        background-color: lightblue; /* leave space for header */
+    }
+</style>
