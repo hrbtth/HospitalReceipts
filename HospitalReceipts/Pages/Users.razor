@@ -1,0 +1,155 @@
+﻿@page "/users"
+@inject HospitalReceipts.Services.AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<h3>User Management</h3>
+
+@if (Auth.CurrentUser == null)
+{
+    <p>You must <a href="/login">login</a> to access this page.</p>
+}
+else
+{
+    <p><strong>Current User:</strong> @Auth.CurrentUser.UserName (@Auth.CurrentUser.Privilege)</p>
+    <h4>Change Your Password</h4>
+    <div class="mb-3">
+        <input @bind="oldPassword" class="form-control" type="password" placeholder="Old Password" />
+    </div>
+    @if (!string.IsNullOrEmpty(passwordMessage))
+    {
+        <div class="mt-2 text-danger">@passwordMessage</div>
+    }
+    <div class="mb-3">
+        <input @bind="newPasswordSelf" class="form-control" type="password" placeholder="New Password" />
+    </div>
+    <button class="btn btn-primary" @onclick="ChangeOwnPassword">Change Password</button>
+    if (Auth.CurrentUser.Privilege == "ADMIN")
+    {
+        <hr />
+        <h4>Manage All Users</h4>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Privilege</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in users)
+                {
+                    <tr>
+                        <td>@user.UserName</td>
+                        <td>@user.Privilege</td>
+                        <td>
+                            @if (user.UserName != Auth.CurrentUser.UserName)
+                            {
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteUser(user.UserName)">Delete</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <hr/>
+        <h4>Create New User</h4>
+        <div class="mb-3">
+            <input @bind="newUserName" class="form-control" placeholder="Username" />
+        </div>
+        <div class="mb-3">
+            <input @bind="newPassword" class="form-control" type="password" placeholder="Password" />
+        </div>
+        <div class="mb-3">
+            <select @bind="newPrivilege" class="form-control">
+                <option value="USER">USER</option>
+                <option value="ADMIN">ADMIN</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" @onclick="CreateUser">Create</button>
+    }
+}
+
+
+
+@code {
+    private List<HospitalReceipts.Models.AppUser> users = new();
+    private string newUserName = string.Empty;
+    private string newPassword = string.Empty;
+    private string newPrivilege = "USER";
+
+    // for self password change
+    private string oldPassword = string.Empty;
+    private string newPasswordSelf = string.Empty;
+    private string passwordMessage = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        if (Auth.CurrentUser?.Privilege == "ADMIN")
+        {
+            users = Auth.GetAllUsers();
+        }
+    }
+
+    private void CreateUser()
+    {
+        try
+        {
+            Auth.CreateUser(newUserName, newPassword, newPrivilege);
+            users = Auth.GetAllUsers();
+            newUserName = string.Empty;
+            newPassword = string.Empty;
+            newPrivilege = "USER";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error: " + ex.Message);
+        }
+    }
+
+    private void DeleteUser(string username)
+    {
+        try
+        {
+            Auth.DeleteUser(username);
+            users = Auth.GetAllUsers();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error: " + ex.Message);
+        }
+    }
+
+    private async Task ChangeOwnPassword()
+    {
+        try
+        {
+            passwordMessage = string.Empty;
+
+            if (Auth.CurrentUser != null)
+            {
+                bool changed = Auth.ChangeOwnPassword(Auth.CurrentUser.UserName, oldPassword, newPasswordSelf);
+                if (changed)
+                {
+                    // Show popup alert
+                    await JS.InvokeVoidAsync("alert", "Password changed successfully. Please login again.");
+                    // logout and redirect to login
+                    Auth.Logout();
+                    Nav.NavigateTo("/login", forceLoad: true);
+                }
+                else
+                {
+                    passwordMessage = "Old password incorrect!";
+                }
+
+                oldPassword = string.Empty;
+                newPasswordSelf = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            passwordMessage = "Error: " + ex.Message;
+        }
+    }
+}

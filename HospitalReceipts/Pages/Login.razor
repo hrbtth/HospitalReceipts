@@ -1,0 +1,48 @@
+﻿@page "/login"
+@using HospitalReceipts.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<h3>Login</h3>
+
+@if (Auth.CurrentUser is null)
+{
+    <input @bind="username" placeholder="Username" class="form-control mb-2" />
+    <input @bind="password" type="password" placeholder="Password" class="form-control mb-2" />
+    <button @onclick="DoLogin" class="btn btn-primary">Login</button>
+
+    @if (error != null)
+    {
+        <div class="text-danger mt-2">@error</div>
+    }
+}
+else
+{
+    <p><strong>Current User:</strong> @Auth.CurrentUser.UserName (@Auth.CurrentUser.Privilege)</p>
+    <button @onclick="DoLogout" class="btn btn-warning">Logout</button>
+}
+
+@code {
+    private string username = "";
+    private string password = "";
+    private string? error;
+
+    private void DoLogin()
+    {
+        if (Auth.Login(username, password))
+        {
+            error = null;
+            Nav.NavigateTo("/"); // refresh to reflect logged-in state
+        }
+        else
+        {
+            error = "Invalid login.";
+        }
+    }
+
+    private void DoLogout()
+    {
+        Auth.Logout();
+        Nav.NavigateTo("/login", forceLoad: true); // reload page
+    }
+}

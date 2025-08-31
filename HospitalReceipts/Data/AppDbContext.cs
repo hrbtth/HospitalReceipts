@@ -11,6 +11,8 @@ namespace HospitalReceipts.Data
         // Tables
         public DbSet<ReceiptBookMain> ReceiptBookMain { get; set; }
         public DbSet<Receipt> Receipts { get; set; }
+        public DbSet<AppUser> Users { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,6 +37,7 @@ namespace HospitalReceipts.Data
                       .HasForeignKey(r => r.BookId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+            
         }
     }
 }

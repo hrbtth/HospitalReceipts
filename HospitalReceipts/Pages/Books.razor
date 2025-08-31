@@ -2,9 +2,25 @@
 @using HospitalReceipts.Data
 @using Microsoft.EntityFrameworkCore
 @using HospitalReceipts.Models
+@using HospitalReceipts.Services
 @inject AppDbContext Db
+@inject AuthService Auth
 
 <h3>Books</h3>
+@if (Auth.CurrentUser == null || Auth.CurrentUser.Privilege != "ADMIN")
+{
+    <p>You must <a href="/login">login</a> as ADMIN to access this page.</p>
+
+}
+
+else
+{
+    <p><strong>Current User:</strong> @Auth.CurrentUser.UserName (@Auth.CurrentUser.Privilege)</p>
+    
+}
+<!--if not loged in as ADMIN, hide entire page-->
+<div hidden="@((Auth.CurrentUser ==null || Auth.CurrentUser.Privilege !="ADMIN" ))">
+    
 
 <!-- Button to add new book -->
 <button class="btn btn-primary mb-3" @onclick="AddBook">Add New Book</button>
@@ -86,7 +102,9 @@
             </div>
         </div>
     </div>
+    
 }
+</div>
 
 @code {
     private List<ReceiptBookMain>? books;

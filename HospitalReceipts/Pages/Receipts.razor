@@ -4,11 +4,27 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using HospitalReceipts.Data
 @using HospitalReceipts.Models
+@using HospitalReceipts.Services
 @inject AppDbContext _context
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
+@inject AuthService Auth
 
 <h3>Receipts</h3>
+@if (Auth.CurrentUser == null )
+{
+    <p>You must <a href="/login">login</a> to access this page.</p>
+
+}
+
+else
+{
+    <p><strong>Current User:</strong> @Auth.CurrentUser.UserName (@Auth.CurrentUser.Privilege)</p>
+    
+}
+<!--if not loged in as ADMIN, hide entire page-->
+<div hidden="@(Auth.CurrentUser ==null )">
+
 
 <div class="d-flex">
     <!-- Left: books panel -->
@@ -84,6 +100,7 @@
         </div>
 
     </div>
+</div>
 </div>
 
 <!-- Add/Edit Modal -->

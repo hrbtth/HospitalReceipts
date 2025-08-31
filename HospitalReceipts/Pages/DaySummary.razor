@@ -3,8 +3,10 @@
 @using Microsoft.EntityFrameworkCore
 @using HospitalReceipts.Data
 @using HospitalReceipts.Models
+@using HospitalReceipts.Services
 @inject AppDbContext _context
 @inject IJSRuntime JS
+@inject AuthService Auth
 
 @code {
     [Parameter] public int bookId { get; set; }
@@ -89,6 +91,17 @@
     }
 }
 
+@if (Auth.CurrentUser == null)
+{
+    <p>You must <a href="/login">login</a> to access this page.</p>
+
+}
+else
+{
+    <p><strong>Current User:</strong> @Auth.CurrentUser.UserName (@Auth.CurrentUser.Privilege)</p>
+    
+}
+<div hidden="@(!(Auth.CurrentUser != null))"> <!--if not loged in, hide entire page-->
 <!-- Toolbar (screen only) -->
 <div class="no-print" style="margin-bottom:12px;">
     <button class="btn btn-primary" @onclick="PrintPage">Print</button>
@@ -143,8 +156,7 @@
     <div id="pagesContainer">
         <!-- Pages will be dynamically added here -->
     </div>
-
-
+</div>
 </div>
 <style>
     
@@ -335,8 +347,15 @@
             page-break-after: always;
             /*font-size: 10px;*/
         }
+
+        .dayHeader {
+            background-color: lightgray !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact; /* for Firefox */
+        }
         
 }
-    }
+    
 
 </style>
