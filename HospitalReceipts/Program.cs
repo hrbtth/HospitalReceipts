@@ -51,9 +51,9 @@ using (var scope = app.Services.CreateScope())
     {
         db.Users.Add(new AppUser
         {
-            UserName = "Admin",
-            Password = "", // blank password
-            Privilege = "ADMIN"
+            UserName = "SuperAdmin",
+            Password = "superadmin", 
+            Privilege = "SUPER ADMIN"
         });
         db.SaveChanges();
     }

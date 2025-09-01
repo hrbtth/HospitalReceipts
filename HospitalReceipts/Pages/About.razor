@@ -1,0 +1,92 @@
+﻿@page "/about"
+
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4 text-primary">🏥 Hospital Receipts</h1>
+        <p class="lead text-muted">Manage books, receipts, and users efficiently with ease.</p>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Default Login Info -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-info h-100 hover-scale">
+                <div class="card-header bg-info text-white d-flex align-items-center">
+                    <span class="oi oi-lock-locked me-2"></span>
+                    <h5 class="mb-0">Default Login</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>User Name:</strong> SuperAdmin</p>
+                    <p><strong>Password:</strong> superadmin</p>
+                    <p class="text-muted">Please change your password after first login for security.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Roles -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-success h-100 hover-scale">
+                <div class="card-header bg-success text-white d-flex align-items-center">
+                    <span class="oi oi-people me-2"></span>
+                    <h5 class="mb-0">User Roles</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><strong>USER:</strong> Handle daily tasks like creating receipts, printing, generating summaries.</li>
+                        <li><strong>ADMIN:</strong> Create/edit receipt books, set defaults, manage users.</li>
+                        <li><strong>SUPER ADMIN:</strong> Full control over users and app settings.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Developer Info -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-warning h-100 hover-scale">
+                <div class="card-header bg-warning text-dark d-flex align-items-center">
+                    <span class="oi oi-laptop me-2"></span>
+                    <h5 class="mb-0">Developer Info</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>H Ramadas Bhat</strong>, Thithahalli</p>
+                    <p>Email: <a href="mailto:hrbtth@gmail.com">hrbtth@gmail.com</a></p>
+                    <p>WhatsApp: <a href="https://wa.me/919481091727" target="_blank">+91 94810 91727</a></p>
+                    <p>Tools: Visual Studio 2022, ASP.Net, Blazor Framework</p>
+                    <p>Special thanks to ChatGPT for guidance and suggestions.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source Code -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-secondary h-100 hover-scale">
+                <div class="card-header bg-secondary text-white d-flex align-items-center">
+                    <span class="oi oi-code me-2"></span>
+                    <h5 class="mb-0">Source Code</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p>Check out the full source code on GitHub:</p>
+                    <a href="https://github.com/hrbtth/HospitalReceipts" target="_blank" rel="noopener noreferrer"
+                       class="btn btn-outline-primary btn-sm">
+                        <span class="oi oi-globe me-1"></span> GitHub Repository
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .hover-scale {
+        transition: transform 0.2s ease-in-out;
+    }
+
+        .hover-scale:hover {
+            transform: scale(1.03);
+        }
+
+    .card-body ul li {
+        margin-bottom: 0.5rem;
+    }
+</style>

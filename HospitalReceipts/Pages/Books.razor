@@ -7,7 +7,7 @@
 @inject AuthService Auth
 
 <h3>Books</h3>
-@if (Auth.CurrentUser == null || Auth.CurrentUser.Privilege != "ADMIN")
+@if (Auth.CurrentUser == null || Auth.CurrentUser.Privilege == "USER")
 {
     <p>You must <a href="/login">login</a> as ADMIN to access this page.</p>
 
@@ -19,7 +19,7 @@ else
     
 }
 <!--if not loged in as ADMIN, hide entire page-->
-<div hidden="@((Auth.CurrentUser ==null || Auth.CurrentUser.Privilege !="ADMIN" ))">
+<div hidden="@((Auth.CurrentUser ==null || Auth.CurrentUser.Privilege =="USER" ))">
     
 
 <!-- Button to add new book -->

@@ -56,11 +56,13 @@ else
             <button class="btn btn-sm btn-outline-secondary me-2 ms-3" @onclick="ToggleLeftPanel">
                 @(hideLeftPanel ? "Show Books" : "")
             </button>
-            <button class="btn btn-primary me-2 btn-sm" @onclick="PrintReceipt" disabled="@(!IsReceiptSelected)">Print Receipt</button>
-            <button class="btn btn-info me-2 btn-sm" @onclick="ShowDaySummaryModal" disabled="@(!IsBookSelected)">Day Summary</button>
             <button class="btn btn-primary me-2 btn-sm" @onclick="ShowAddModal" disabled="@(!IsBookSelected)">Add</button>
+            <button class="btn btn-primary me-2 btn-sm" @onclick="PrintReceipt" disabled="@(!IsReceiptSelected)">Print Receipt</button>
             <button class="btn btn-warning me-2 btn-sm" @onclick="ShowEditModal" disabled="@(!IsReceiptSelected)">Edit</button>
-            <button class="btn btn-danger btn-sm" @onclick="DeleteSelected" disabled="@(!IsReceiptSelected)">Delete</button>
+            <button class="btn btn-danger me-2 btn-sm" @onclick="DeleteSelected" disabled="@(!IsReceiptSelected)">Delete</button>
+            <button class="btn btn-primary me-2 btn-sm" @onclick="ShowDaySummaryModal" disabled="@(!IsBookSelected)">Day Summary</button>
+            <button class="btn btn-primary me-2 btn-sm" @onclick="() => GoToDataSheet(selectedBookId)">DataSheet View</button>
+
         </div>
 
         <!-- Header below buttons -->
@@ -98,9 +100,26 @@ else
                 </tbody>
             </table>
         </div>
+            <div class="d-flex justify-content-center" hidden="@((Auth.CurrentUser == null || Auth.CurrentUser.Privilege != "SUPER ADMIN"))">
+            <button class="btn btn-danger mb-3" @onclick="ConfirmDeleteAll">
+                Delete All Receipts
+            </button>
 
+            @if (showConfirmDeleteAll)
+            {
+                <div class="alert alert-danger mt-2">
+                    <p>
+                        <strong>Are you sure?</strong> You want to delete all receipts of this book? <br />
+                        This action cannot be reversed.
+                    </p>
+                    <button class="btn btn-danger me-2" @onclick="DeleteAllReceipts">Yes, Delete All</button>
+                    <button class="btn btn-secondary" @onclick="() => showConfirmDeleteAll = false">Cancel</button>
+                </div>
+            }
+
+        </div>
     </div>
-</div>
+  </div>
 </div>
 
 <!-- Add/Edit Modal -->
@@ -423,4 +442,67 @@ else
     }
 
     private void ToggleLeftPanel() => hideLeftPanel = !hideLeftPanel;
+    private void GoToDataSheet(int bookId)
+    {
+        NavManager.NavigateTo($"/datasheet/{bookId}");
+    }
+
+    
+    private bool showConfirmDeleteAll = false;
+
+    private void ConfirmDeleteAll()
+    {
+        if (!IsBookSelected) return;
+        showConfirmDeleteAll = true;
+    }
+
+    private void CancelDeleteAll()
+    {
+        showConfirmDeleteAll = false;
+    }
+
+    private async Task DeleteAllReceipts()
+    {
+        if (!IsBookSelected) return;
+
+        try
+        {
+            var allReceipts = await _context.Receipts
+                .Where(r => r.BookId == selectedBookId)
+                .ToListAsync();
+
+            if (allReceipts.Any())
+            {
+                _context.Receipts.RemoveRange(allReceipts);
+            }
+
+            // reset NextReceiptNo to 1 for the current book
+            var book = await _context.ReceiptBookMain
+                .FirstOrDefaultAsync(b => b.BookId == selectedBookId);
+
+            if (book != null)
+            {
+                book.NextReceiptNo = 1;
+                _context.ReceiptBookMain.Update(book);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // refresh list
+            await SelectBook(selectedBookId);
+
+            // close confirmation
+            showConfirmDeleteAll = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("DeleteAllReceipts error: " + ex);
+        }
+    }
+
+
+
+    
+    
+
 }

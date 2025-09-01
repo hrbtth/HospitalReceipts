@@ -1,17 +1,78 @@
 ﻿@using HospitalReceipts.Services
 @inject AuthService Auth
 @page "/"
-<h3>Hospital Receipts</h3>
-<p>Welcome to the Hospital Receipts application.</p> 
-<p>Use the navigation menu to manage books, receipts, and users.</p>
-@if (Auth.CurrentUser != null)
-{
-    <p><strong>Logged in as:</strong> @Auth.CurrentUser.UserName (@Auth.CurrentUser.Privilege)</p>
-    <p> <strong><a href="/login">Logout</a></strong></p>
-}
-else
-{
-    <p><em>You are not logged in. Please <a href="/login">log in</a> to access more features.</em></p>
-    
-}
 
+<div class="container mt-5">
+    <!-- Page Header -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 text-primary">🏥 Hospital Receipts</h1>
+        <p class="lead text-muted">Manage Multiple Receipt books, Day summaries, and users efficiently.</p>
+    </div>
+
+    <!-- Logged in info -->
+    @if (Auth.CurrentUser != null)
+    {
+        <div class="alert alert-success d-flex justify-content-between align-items-center mb-4" role="alert">
+            <div>
+                <strong>Logged in as:</strong> @Auth.CurrentUser.UserName (@Auth.CurrentUser.Privilege)
+            </div>
+            <a class="btn btn-outline-danger btn-sm" href="/login">Logout</a>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning d-flex justify-content-between align-items-center mb-4" role="alert">
+            <div>
+                <em>You are not logged in.</em>
+            </div>
+            <a class="btn btn-primary btn-sm" href="/login">Log in</a>
+        </div>
+    }
+
+    <!-- Dashboard cards -->
+    <div class="row g-4">
+        <!-- Book List Card -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-primary">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <span class="oi oi-book h1 text-primary"></span>
+                    </div>
+                    <h5 class="card-title">Book List</h5>
+                    <p class="card-text">Manage your receipt books, headers, and default settings.</p>
+                    <a href="/books" class="btn btn-primary btn-sm">Go to Books</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipts Card -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-success">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <span class="oi oi-plus h1 text-success"></span>
+                    </div>
+                    <h5 class="card-title">Receipts</h5>
+                    <p class="card-text">Generate new receipts, print them, and view day summaries quickly.</p>
+                    <a href="receipts" class="btn btn-success btn-sm">Go to Receipts</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Card -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-warning">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <span class="oi oi-people h1 text-warning"></span>
+                    </div>
+                    <h5 class="card-title">Users</h5>
+                    <p class="card-text">Manage user accounts, privileges, and passwords.</p>
+                    <a href="users" class="btn btn-warning btn-sm">Go to Users</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+</div>

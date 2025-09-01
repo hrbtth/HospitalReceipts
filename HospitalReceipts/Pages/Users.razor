@@ -24,7 +24,29 @@ else
         <input @bind="newPasswordSelf" class="form-control" type="password" placeholder="New Password" />
     </div>
     <button class="btn btn-primary" @onclick="ChangeOwnPassword">Change Password</button>
-    if (Auth.CurrentUser.Privilege == "ADMIN")
+    
+    if (Auth.CurrentUser.Privilege == "ADMIN" || Auth.CurrentUser.Privilege == "SUPER ADMIN")
+    {
+        
+        <h4>Create New User</h4>
+        <div class="mb-3">
+            <input @bind="newUserName" class="form-control" placeholder="Username" />
+        </div>
+        <div class="mb-3">
+            <input @bind="newPassword" class="form-control" type="password" placeholder="Password" />
+        </div>
+        <div class="mb-3">
+            <select @bind="newPrivilege" class="form-control">
+                @foreach (var role in availablePrivileges)
+                {
+                    <option value="@role">@role</option>
+                }
+                
+            </select>
+        </div>
+        <button class="btn btn-primary" @onclick="CreateUser">Create</button>
+    }
+    if(Auth.CurrentUser.Privilege == "SUPER ADMIN")
     {
         <hr />
         <h4>Manage All Users</h4>
@@ -53,21 +75,7 @@ else
                 }
             </tbody>
         </table>
-        <hr/>
-        <h4>Create New User</h4>
-        <div class="mb-3">
-            <input @bind="newUserName" class="form-control" placeholder="Username" />
-        </div>
-        <div class="mb-3">
-            <input @bind="newPassword" class="form-control" type="password" placeholder="Password" />
-        </div>
-        <div class="mb-3">
-            <select @bind="newPrivilege" class="form-control">
-                <option value="USER">USER</option>
-                <option value="ADMIN">ADMIN</option>
-            </select>
-        </div>
-        <button class="btn btn-primary" @onclick="CreateUser">Create</button>
+        <hr />
     }
 }
 
@@ -84,11 +92,27 @@ else
     private string newPasswordSelf = string.Empty;
     private string passwordMessage = string.Empty;
 
+    //to hold options of list box
+    private List<string> availablePrivileges = new();
+
     protected override void OnInitialized()
     {
-        if (Auth.CurrentUser?.Privilege == "ADMIN")
+        if (Auth.CurrentUser?.Privilege != "USER")
         {
             users = Auth.GetAllUsers();
+        }
+        // Decide options available in listbox based on privilages
+        if (Auth.CurrentUser?.Privilege == "SUPER ADMIN")
+        {
+            availablePrivileges = new() { "USER", "ADMIN", "SUPER ADMIN" };
+        }
+        else if (Auth.CurrentUser?.Privilege == "ADMIN")
+        {
+            availablePrivileges = new() { "USER", "ADMIN" };
+        }
+        else
+        {
+            availablePrivileges.Clear(); // USER has no create-user option
         }
     }
 

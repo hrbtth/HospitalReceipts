@@ -34,7 +34,7 @@ namespace HospitalReceipts.Services
         //  Only ADMIN can create new users
         public void CreateUser(string username, string password, string privilege)
         {
-            if (_currentUser?.Privilege != "ADMIN")
+            if (_currentUser?.Privilege == "USER")
                 throw new UnauthorizedAccessException("Only ADMIN can create users");
 
             if (_context.Users.Any(u => u.UserName == username))
@@ -50,13 +50,13 @@ namespace HospitalReceipts.Services
             _context.SaveChanges();
         }
 
-        //  ADMIN can change anyone's password, user can change own
+        //  SUPER ADMIN can change anyone's password, user can change own
         public void ChangePassword(string username, string newPassword)
         {
             var user = _context.Users.FirstOrDefault(u => u.UserName == username);
             if (user == null) return;
 
-            if (_currentUser?.Privilege == "ADMIN" || _currentUser?.UserName == username)
+            if (_currentUser?.Privilege == "SUPER ADMIN" || _currentUser?.UserName == username)
             {
                 user.Password = newPassword;
                 _context.SaveChanges();
@@ -82,7 +82,7 @@ namespace HospitalReceipts.Services
         //  List all users (only for ADMIN)
         public List<AppUser> GetAllUsers()
         {
-            if (_currentUser?.Privilege != "ADMIN")
+            if (_currentUser?.Privilege == "USER")
                 throw new UnauthorizedAccessException("Only ADMIN can view all users");
 
             return _context.Users.ToList();
@@ -91,7 +91,7 @@ namespace HospitalReceipts.Services
         //  Delete a user (only for ADMIN, and cannot delete self)
         public void DeleteUser(string username)
         {
-            if (_currentUser?.Privilege != "ADMIN")
+            if (_currentUser?.Privilege == "USER" )
                 throw new UnauthorizedAccessException("Only ADMIN can delete users");
 
             var user = _context.Users.FirstOrDefault(u => u.UserName == username);
@@ -107,7 +107,7 @@ namespace HospitalReceipts.Services
         //  Optional: change privilege (only for ADMIN)
         public void ChangePrivilege(string username, string newPrivilege)
         {
-            if (_currentUser?.Privilege != "ADMIN")
+            if (_currentUser?.Privilege == "USER")
                 throw new UnauthorizedAccessException("Only ADMIN can change privileges");
 
             var user = _context.Users.FirstOrDefault(u => u.UserName == username);
