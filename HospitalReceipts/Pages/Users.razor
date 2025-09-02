@@ -64,17 +64,67 @@ else
                 {
                     <tr>
                         <td>@user.UserName</td>
-                        <td>@user.Privilege</td>
+                        <td>
+                            @if (user.UserName == Auth.CurrentUser.UserName)
+                            {
+                                @user.Privilege
+                            }
+                            else
+                            {
+                                <select class="form-control form-control-sm"
+                                          value="@user.Privilege"
+                                          @onchange="(e) => ChangePrivilege(user.UserName, e.Value?.ToString())">
+                                    @foreach (var role in availablePrivileges)
+                                    {
+                                        <option value="@role" selected="@(user.Privilege == role)">
+                                            @role
+                                        </option>
+                                    }
+                                </select>
+                                
+                            }
+                            
+                        </td>
+
                         <td>
                             @if (user.UserName != Auth.CurrentUser.UserName)
                             {
-                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteUser(user.UserName)">Delete</button>
+                                <button class="btn btn-warning btn-sm me-2"
+                                        @onclick="() => OpenResetModal(user.UserName)">
+                                    Reset Password
+                                </button>
+                                <button class="btn btn-danger btn-sm"
+                                        @onclick="() => ConfirmDeleteUser(user.UserName)">
+                                    Delete
+                                </button>
                             }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        @if (showResetModal)
+        {
+            <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Reset Password - @resetUserName</h5>
+                            <button type="button" class="btn-close" @onclick="CloseResetModal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input @bind="resetPassword" type="password" class="form-control" placeholder="Enter new password (can be blank)" />
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" @onclick="CloseResetModal">Cancel</button>
+                            <button class="btn btn-danger" @onclick="ConfirmResetPassword">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+
         <hr />
     }
 }
@@ -144,6 +194,14 @@ else
             Console.WriteLine("Error: " + ex.Message);
         }
     }
+    private async Task ConfirmDeleteUser(string username)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {username}?");
+        if (confirmed)
+        {
+            DeleteUser(username);
+        }
+    }
 
     private async Task ChangeOwnPassword()
     {
@@ -176,4 +234,87 @@ else
             passwordMessage = "Error: " + ex.Message;
         }
     }
+    private void ChangePrivilege(string username, string? newPrivilege)
+    {
+        if (string.IsNullOrEmpty(newPrivilege)) return;
+
+        try
+        {
+            Auth.ChangePrivilege(username, newPrivilege);
+            users = Auth.GetAllUsers(); // reload list
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error changing privilege: " + ex.Message);
+        }
+    }
+
+    // private async Task ResetPassword(string username)
+    // {
+    //     try
+    //     {
+    //         // You can auto-assign a default password or prompt for input.
+    //         string defaultPassword = "newpass123";
+
+    //         Auth.ResetPassword(username, defaultPassword);
+
+    //         await JS.InvokeVoidAsync("alert", $"Password for {username} reset to: {defaultPassword}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine("Error resetting password: " + ex.Message);
+    //     }
+    // }
+    // private async Task PromptResetPassword(string username)
+    // {
+    //     // Ask for new password using browser prompt
+    //     var newPassword = await JS.InvokeAsync<string>("prompt", $"Enter new password for {username}:");
+
+    //     if (!string.IsNullOrEmpty(newPassword))
+    //     {
+    //         try
+    //         {
+    //             Auth.ResetPassword(username, newPassword);
+    //             await JS.InvokeVoidAsync("alert", $"Password for {username} has been reset.");
+    //         }
+    //         catch (Exception ex)
+    //         {
+    //             await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+    //         }
+    //     }
+    // }
+
+    // for reset password modal dialog
+    private bool showResetModal = false;
+    private string resetUserName = string.Empty;
+    private string resetPassword = string.Empty;
+
+    private void OpenResetModal(string username)
+    {
+        resetUserName = username;
+        resetPassword = string.Empty; // reset each time
+        showResetModal = true;
+    }
+
+    private void CloseResetModal()
+    {
+        showResetModal = false;
+    }
+
+    private async Task ConfirmResetPassword()
+    {
+        try
+        {
+            // resetPassword can be empty string ("")
+            Auth.ResetPassword(resetUserName, resetPassword);
+            await JS.InvokeVoidAsync("alert", $"Password for {resetUserName} has been reset.");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+
+        showResetModal = false;
+    }
+
 }

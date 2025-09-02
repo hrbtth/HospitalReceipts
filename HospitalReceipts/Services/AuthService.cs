@@ -116,5 +116,15 @@ namespace HospitalReceipts.Services
             user.Privilege = newPrivilege;
             _context.SaveChanges();
         }
+        public void ResetPassword(string username, string newPassword)
+        {
+            var user = _context.Users.FirstOrDefault(u => u.UserName == username);
+            if (user != null)
+            {
+                user.Password = newPassword;  //  Store hashed in real apps
+                _context.SaveChanges();
+            }
+        }
     }
+
 }

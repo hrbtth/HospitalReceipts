@@ -56,6 +56,37 @@ using (var scope = app.Services.CreateScope())
             Privilege = "SUPER ADMIN"
         });
         db.SaveChanges();
+        //seed the first book
+        var book = new ReceiptBookMain
+        {
+            BookId = 1,
+            BookName = "OP Receipts of Dr XYZ",
+            Header1 = "XYZ Nursing Home",
+            Header2 = "Adress, City, PIN",
+            Header3 = "Phone 0000000000",
+            DefaultAmount = 100,
+            DefaultTowards = "OP Consultation",
+            NextReceiptNo = 2
+        };
+
+        db.ReceiptBookMain.Add(book);
+        db.SaveChanges();
+
+        // Now seed the first receipt linked to this book
+        var receipt = new Receipt
+        {
+            ReceiptId = 1,
+            BookId = book.BookId, // foreign key
+            ReceiptNo = 1,
+            Date = DateTime.Now,  // or DateTime.Today
+            Name = "Patient Name",
+            Amount = 100,
+            Towards = "OP Consultation",
+            Printed = 0
+        };
+
+        db.Receipts.Add(receipt);
+        db.SaveChanges();
     }
 }
 
