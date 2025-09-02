@@ -82,34 +82,71 @@ else
         }
     </tbody>
 </table>
-
-<!-- Confirmation Dialog -->
-@if (deleteBook != null)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Delete</h5>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete <b>@deleteBook.BookName</b> (BookId: @deleteBook.BookId)?</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-danger" @onclick="DeleteBook">Yes, Delete</button>
-                    <button class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+    <!-- single book delete Confirmation Dialog -->
+    @if (deleteBook != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete <b>@deleteBook.BookName</b> (BookId: @deleteBook.BookId)?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-danger" @onclick="DeleteBook">Yes, Delete</button>
+                        <button class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-}
+
+    }
 </div>
+<!-- bulk delete button -->
+<div class="d-flex justify-content-center">
+    @if (Auth.CurrentUser?.Privilege == "SUPER ADMIN" && books?.Any() == true)
+    {
+        <button class="btn btn-danger mt-3" @onclick="ConfirmDeleteAllBooks">
+            Delete All Books with their Receipts
+        </button>
+    }
+
+    <!-- Bulk delete confirmation modal -->
+    @if (confirmDeleteAll)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete All</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            ⚠️ Are you sure?
+                            This will permanently delete <b>all books</b> and
+                            <b>all receipts</b>.
+                            This action cannot be undone.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-danger" @onclick="DeleteAllBooks">Yes, Delete All</button>
+                        <button class="btn btn-secondary" @onclick="CancelDeleteAll">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
 
 @code {
     private List<ReceiptBookMain>? books;
     private ReceiptBookMain? editBook;
     private ReceiptBookMain? deleteBook;
+   
 
     protected override async Task OnInitializedAsync()
     {
@@ -180,4 +217,40 @@ else
     {
         deleteBook = null;
     }
+    //for bulk delete (all books with their receipts)
+    private bool confirmDeleteAll = false;
+    private void ConfirmDeleteAllBooks()
+    {
+        confirmDeleteAll = true;
+    }
+
+    private async Task DeleteAllBooks()
+    {
+        // Delete all receipts first
+        var allReceipts = Db.Receipts.ToList();
+        if (allReceipts.Any())
+        {
+            Db.Receipts.RemoveRange(allReceipts);
+        }
+
+        // Delete all books
+        var allBooks = Db.ReceiptBookMain.ToList();
+        if (allBooks.Any())
+        {
+            Db.ReceiptBookMain.RemoveRange(allBooks);
+        }
+
+        await Db.SaveChangesAsync();
+
+        // Refresh UI
+        books = new List<ReceiptBookMain>();
+        confirmDeleteAll = false;
+        StateHasChanged();
+    }
+
+    private void CancelDeleteAll()
+    {
+        confirmDeleteAll = false;
+    }
 }
+

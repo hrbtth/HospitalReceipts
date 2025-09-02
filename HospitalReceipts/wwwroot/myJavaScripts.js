@@ -1,4 +1,5 @@
-﻿function createPages(numPages) {
+﻿console.log("javascript loaded");
+function createPages(numPages) {
     let container = document.getElementById("pagesContainer");
     container.innerHTML = ""; // Clear previous pages
     let fragment = document.createDocumentFragment();//temp object to hold elements of base page to be created.
@@ -188,7 +189,15 @@ function paginateContent(reportHeaderTxt,pageFooterTxt) {
         }
     }   
 }
-      
+//for toast popup
+
+window.showBootstrapToast = (selector) => {
+    var toastEl = document.querySelector(selector);
+    if (toastEl) {
+        var toast = new bootstrap.Toast(toastEl, { delay: 2000 }); // 2 sec
+        toast.show();
+    }
+};      
     
 
 

@@ -72,14 +72,10 @@ else
                             else
                             {
                                 <select class="form-control form-control-sm"
-                                          value="@user.Privilege"
-                                          @onchange="(e) => ChangePrivilege(user.UserName, e.Value?.ToString())">
-                                    @foreach (var role in availablePrivileges)
-                                    {
-                                        <option value="@role" selected="@(user.Privilege == role)">
-                                            @role
-                                        </option>
-                                    }
+                                        @onchange="e => ChangeUserPrivilege(e, user.UserName)">
+                                    <option value="USER" selected="@("USER" == user.Privilege)">USER</option>
+                                    <option value="ADMIN" selected="@("ADMIN" == user.Privilege)">ADMIN</option>
+                                    <option value="SUPER ADMIN" selected="@("SUPER ADMIN" == user.Privilege)">SUPER ADMIN</option>
                                 </select>
                                 
                             }
@@ -123,6 +119,20 @@ else
                 </div>
             </div>
         }
+        //toast popup mark up
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div class="toast align-items-center text-bg-success border-0"
+                 role="alert" aria-live="assertive" aria-atomic="true"
+                 id="successToast">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        @toastMessage
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                            data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
 
 
         <hr />
@@ -249,40 +259,7 @@ else
         }
     }
 
-    // private async Task ResetPassword(string username)
-    // {
-    //     try
-    //     {
-    //         // You can auto-assign a default password or prompt for input.
-    //         string defaultPassword = "newpass123";
-
-    //         Auth.ResetPassword(username, defaultPassword);
-
-    //         await JS.InvokeVoidAsync("alert", $"Password for {username} reset to: {defaultPassword}");
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine("Error resetting password: " + ex.Message);
-    //     }
-    // }
-    // private async Task PromptResetPassword(string username)
-    // {
-    //     // Ask for new password using browser prompt
-    //     var newPassword = await JS.InvokeAsync<string>("prompt", $"Enter new password for {username}:");
-
-    //     if (!string.IsNullOrEmpty(newPassword))
-    //     {
-    //         try
-    //         {
-    //             Auth.ResetPassword(username, newPassword);
-    //             await JS.InvokeVoidAsync("alert", $"Password for {username} has been reset.");
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
-    //         }
-    //     }
-    // }
+    
 
     // for reset password modal dialog
     private bool showResetModal = false;
@@ -316,5 +293,30 @@ else
 
         showResetModal = false;
     }
+    //for toast popup
+    private string toastMessage = string.Empty;
 
+    private async Task ChangeUserPrivilege(ChangeEventArgs e, string username)
+    {
+        var newPrivilege = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(newPrivilege))
+        {
+            try
+            {
+                Auth.ChangePrivilege(username, newPrivilege);
+                toastMessage = $"{username} updated to {newPrivilege} ";
+                await ShowToastAsync();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                toastMessage = ex.Message;
+                await ShowToastAsync();
+            }
+        }
+    }
+
+    private async Task ShowToastAsync()
+    {
+        await JS.InvokeVoidAsync("showBootstrapToast", "#successToast");
+    }
 }
