@@ -11,6 +11,7 @@
 @inject AuthService Auth
 
 <h3>Receipts</h3>
+
 @if (Auth.CurrentUser == null )
 {
     <p>You must <a href="/login">login</a> to access this page.</p>
@@ -100,6 +101,8 @@ else
                 </tbody>
             </table>
         </div>
+        
+        <!----------Delete All Receipts Button---------------->
         <div class="d-flex justify-content-center">
                 @if (Auth.CurrentUser?.Privilege == "SUPER ADMIN" && receipts?.Any() == true)
             {
@@ -169,6 +172,14 @@ else
                         </div>
 
                         <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" @onclick="saveAndPrintReceipt" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                }
+                                Save & Print
+                            </button>
+
                             <button type="submit" class="btn btn-success" disabled="@isSaving">
                                 @if (isSaving)
                                 {
@@ -210,11 +221,102 @@ else
         </div>
     </div>
 }
+
 <style>
     .list-group-item.active {
         background-color: rgba(0, 0, 0, 0.05) !important; /* very light */
         color: #000 !important;
         border-color: #dee2e6 !important;
+    }
+
+    .a6page {
+        width: calc(148mm - 10mm); /* full A6 width-margins 2x5mm */
+        height: calc(105mm - 10mm); /* full A6 height - margins 2x5mm */
+        margin: 0 auto; /*margin 5mm introduced in At page direction*/
+        padding: 5mm; /* margin between page edge and receipt */
+        box-sizing: border-box;
+        /*border: 1px solid #ccc;*/
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border: 1px solid gray;
+    }
+
+    .receipt {
+        width: 100%;
+        height: 100%;
+        max-width: calc(100% - 0mm); /* fits within page padding */
+        max-height: calc(100% - 0mm);
+        border: 2px solid black; /* visible border around content */
+        background: white;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        padding-left: 4mm; /* inner padding for content */
+        padding-right: 4mm;
+        padding-top: 2mm;
+    }
+
+    .header1 {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        line-height: 1.2;
+        padding: 0;
+    }
+
+    .header2 {
+        text-align: center;
+        font-size: 16px;
+        line-height: 1.2;
+        padding: 0;
+    }
+
+    .header3 {
+        text-align: center;
+        font-size: 14px;
+        line-height: 1.2;
+        padding: 0;
+    }
+
+    .receipt-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .tall-row {
+        font-size: 16px;
+        line-height: 1.8;
+        padding-top: 0;
+        padding-bottom: 2px;
+    }
+
+    @@page {
+        size: A6 landscape;
+        margin: 5mm; /* no browser default margins */
+    }
+
+    @@media print {
+        /* Hide everything else except printableArea */
+        body * {
+            visibility: hidden; /* hide everything */
+        }
+
+        #printableArea, #printableArea * {
+            visibility: visible; /* only show printable area */
+        }
+
+        #printableArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
     }
 
 </style>
@@ -229,7 +331,7 @@ else
     private int selectedReceiptId;
 
     private bool IsBookSelected => selectedBookId > 0;
-    private bool IsReceiptSelected => selectedReceiptId > 0;
+    private bool IsReceiptSelected => selectedReceiptId > 0;    
 
     // Add/Edit modal state
     private bool showModal = false;
@@ -293,7 +395,7 @@ else
 
         selectedReceiptId = 0;
 
-        
+
         // persist selection in localStorage
         try
         {
@@ -420,11 +522,33 @@ else
         }
     }
 
-    private void PrintReceipt()
+    private void  PrintReceipt()
     {
-        if (!IsReceiptSelected) return;
-        NavManager.NavigateTo($"/receipt-print/{selectedReceiptId}");
+        if (!IsReceiptSelected) return;        
+        NavManager.NavigateTo($"/receipt-print/{selectedReceiptId}");     
+
     }
+    
+   
+    
+    private async Task saveAndPrintReceipt()
+    {
+        isSaving = true;
+        await SaveReceipt();  // Save logic already has validation/errors
+
+        if (string.IsNullOrEmpty(saveError) && editReceipt != null)
+        {
+            // Mark the saved receipt as selected
+            selectedReceiptId = editReceipt.ReceiptId;
+            //call print mechanism
+            PrintReceipt();
+        }
+
+        isSaving = false;   
+
+    }
+
+
 
     private void ShowDaySummaryModal()
     {
@@ -504,10 +628,10 @@ else
             Console.WriteLine("DeleteAllReceipts error: " + ex);
         }
     }
-
-
-
-    
-    
-
 }
+
+
+    
+    
+
+
